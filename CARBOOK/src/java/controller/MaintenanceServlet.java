@@ -2,6 +2,8 @@ package controller;
 
 import dal.MaintenanceRecordDAO;
 import dal.CarDAO;
+import dal.BookingDAO;
+import dal.CarAvailabilityDAO;
 import model.MaintenanceRecord;
 import model.Car;
 import model.User;
@@ -9,7 +11,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.List;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -19,51 +20,50 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 /**
- * MaintenanceServlet - Handles maintenance record management
+ * MaintenanceServlet - Handles maintenance record operations
  */
 @WebServlet(name = "MaintenanceServlet", urlPatterns = {"/maintenance"})
 public class MaintenanceServlet extends HttpServlet {
 
     private MaintenanceRecordDAO maintenanceDAO = new MaintenanceRecordDAO();
     private CarDAO carDAO = new CarDAO();
+    private BookingDAO bookingDAO = new BookingDAO();
+    private CarAvailabilityDAO availabilityDAO = new CarAvailabilityDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        // Check if user is logged in
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
         
         if (user == null) {
-            response.sendRedirect("login.jsp");
+            response.sendRedirect("login");
             return;
         }
         
         String action = request.getParameter("action");
-        
         if (action == null) {
             action = "list";
         }
         
         switch (action) {
             case "list":
-                listMaintenance(request, response);
+                listMaintenance(request, response, user);
                 break;
             case "create":
-                showCreateForm(request, response);
+                showCreateForm(request, response, user);
                 break;
             case "edit":
-                showEditForm(request, response);
+                showEditForm(request, response, user);
                 break;
             case "delete":
-                deleteMaintenance(request, response);
+                deleteMaintenance(request, response, user);
                 break;
             case "complete":
-                completeMaintenance(request, response);
+                completeMaintenance(request, response, user);
                 break;
             default:
-                listMaintenance(request, response);
+                listMaintenance(request, response, user);
                 break;
         }
     }
@@ -71,12 +71,11 @@ public class MaintenanceServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
         
         if (user == null) {
-            response.sendRedirect("login.jsp");
+            response.sendRedirect("login");
             return;
         }
         
@@ -89,84 +88,127 @@ public class MaintenanceServlet extends HttpServlet {
         }
     }
 
-    private void listMaintenance(HttpServletRequest request, HttpServletResponse response)
+    /**
+     * List maintenance records
+     */
+    private void listMaintenance(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        
-        String status = request.getParameter("status");
-        String carIdStr = request.getParameter("carId");
-        
         List<MaintenanceRecord> maintenanceList;
-        Car car = null;
         
-        if (carIdStr != null && !carIdStr.isEmpty()) {
-            // Get maintenance for specific car
-            int carId = Integer.parseInt(carIdStr);
-            car = carDAO.getCarById(carId);
+        String carIdParam = request.getParameter("carId");
+        String statusFilter = request.getParameter("status");
+        
+        if (carIdParam != null && !carIdParam.isEmpty()) {
+            // List for specific car
+            int carId = Integer.parseInt(carIdParam);
+            Car car = carDAO.getCarById(carId);
+            
+            // Check permission
+            if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
+                request.setAttribute("error", "Bạn không có quyền xem thông tin này");
+                response.sendRedirect("dashboard");
+                return;
+            }
+            
             maintenanceList = maintenanceDAO.getMaintenanceByCarId(carId);
             request.setAttribute("car", car);
-        } else if (status != null && !status.isEmpty()) {
+        } else if (statusFilter != null && !statusFilter.isEmpty()) {
             // Filter by status
-            maintenanceList = maintenanceDAO.getMaintenanceByStatus(status);
-        } else {
-            // Get all maintenance records
+            maintenanceList = maintenanceDAO.getMaintenanceByStatus(statusFilter);
+        } else if (user.getRoleId() == 1) {
+            // Admin sees all
             maintenanceList = maintenanceDAO.getAllMaintenanceRecords();
+        } else if (user.getRoleId() == 2) {
+            // Car owner sees only their cars' maintenance
+            List<Car> userCars = carDAO.getCarsByOwnerId(user.getUserId());
+            maintenanceList = new java.util.ArrayList<>();
+            for (Car car : userCars) {
+                maintenanceList.addAll(maintenanceDAO.getMaintenanceByCarId(car.getCarId()));
+            }
+        } else {
+            // Customers cannot access
+            request.setAttribute("error", "Bạn không có quyền truy cập trang này");
+            response.sendRedirect("dashboard");
+            return;
         }
         
         request.setAttribute("maintenanceList", maintenanceList);
-        request.setAttribute("carDAO", carDAO);
         request.getRequestDispatcher("maintenance-records.jsp").forward(request, response);
     }
 
-    private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
+    /**
+     * Show create form
+     */
+    private void showCreateForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        
-        String carIdStr = request.getParameter("carId");
-        
-        // Get all cars for selection
-        List<Car> cars = carDAO.getAllCars();
-        request.setAttribute("cars", cars);
-        
-        // If carId is provided, pre-select it
-        if (carIdStr != null && !carIdStr.isEmpty()) {
-            int carId = Integer.parseInt(carIdStr);
-            Car car = carDAO.getCarById(carId);
-            request.setAttribute("selectedCar", car);
+        // Only Admin and Car Owners can create
+        if (user.getRoleId() != 1 && user.getRoleId() != 2) {
+            request.setAttribute("error", "Bạn không có quyền thêm lịch bảo trì");
+            response.sendRedirect("dashboard");
+            return;
         }
         
+        // Get user's cars for dropdown
+        List<Car> userCars;
+        if (user.getRoleId() == 1) {
+            userCars = carDAO.getAllCars();
+        } else {
+            userCars = carDAO.getCarsByOwnerId(user.getUserId());
+        }
+        
+        // Pre-select car if carId provided
+        String carIdParam = request.getParameter("carId");
+        if (carIdParam != null && !carIdParam.isEmpty()) {
+            int carId = Integer.parseInt(carIdParam);
+            Car selectedCar = carDAO.getCarById(carId);
+            request.setAttribute("selectedCar", selectedCar);
+        }
+        
+        request.setAttribute("cars", userCars);
         request.getRequestDispatcher("maintenance-form.jsp").forward(request, response);
     }
 
-    private void showEditForm(HttpServletRequest request, HttpServletResponse response)
+    /**
+     * Show edit form
+     */
+    private void showEditForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        
         int maintenanceId = Integer.parseInt(request.getParameter("id"));
-        
         MaintenanceRecord maintenance = maintenanceDAO.getMaintenanceById(maintenanceId);
         
         if (maintenance == null) {
-            HttpSession session = request.getSession();
-            session.setAttribute("error", "Không tìm thấy lịch bảo trì!");
+            request.setAttribute("error", "Không tìm thấy lịch bảo trì này");
             response.sendRedirect("maintenance");
             return;
         }
         
-        // Get all cars for selection
-        List<Car> cars = carDAO.getAllCars();
+        // Check permission
         Car car = carDAO.getCarById(maintenance.getCarId());
+        if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
+            request.setAttribute("error", "Bạn không có quyền chỉnh sửa");
+            response.sendRedirect("maintenance");
+            return;
+        }
+        
+        // Get user's cars for dropdown
+        List<Car> userCars;
+        if (user.getRoleId() == 1) {
+            userCars = carDAO.getAllCars();
+        } else {
+            userCars = carDAO.getCarsByOwnerId(user.getUserId());
+        }
         
         request.setAttribute("maintenance", maintenance);
-        request.setAttribute("car", car);
-        request.setAttribute("cars", cars);
+        request.setAttribute("cars", userCars);
         request.getRequestDispatcher("maintenance-form.jsp").forward(request, response);
     }
 
+    /**
+     * Create new maintenance record
+     */
     private void createMaintenance(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        
         try {
-            MaintenanceRecord maintenance = new MaintenanceRecord();
-            
-            // Get form parameters
             int carId = Integer.parseInt(request.getParameter("carId"));
             String maintenanceType = request.getParameter("maintenanceType");
             String description = request.getParameter("description");
@@ -177,68 +219,93 @@ public class MaintenanceServlet extends HttpServlet {
             String status = request.getParameter("status");
             String notes = request.getParameter("notes");
             
-            // Set values
-            maintenance.setCarId(carId);
-            maintenance.setMaintenanceType(maintenanceType);
-            maintenance.setDescription(description);
-            maintenance.setServiceProvider(serviceProvider);
-            
-            // Convert date strings to appropriate types
-            if (serviceDateStr != null && !serviceDateStr.isEmpty()) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                java.util.Date date = sdf.parse(serviceDateStr);
-                maintenance.setServiceDate(new Timestamp(date.getTime()));
-            }
-            
-            if (serviceCostStr != null && !serviceCostStr.isEmpty()) {
-                maintenance.setServiceCost(new BigDecimal(serviceCostStr));
-            }
-            
-            if (nextServiceDateStr != null && !nextServiceDateStr.isEmpty()) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                java.util.Date date = sdf.parse(nextServiceDateStr);
-                maintenance.setNextServiceDate(new Date(date.getTime()));
-            }
-            
-            maintenance.setStatus(status);
-            maintenance.setNotes(notes);
-            maintenance.setPerformedBy(user.getUserId());
-            
-            // Create maintenance record
-            int result = maintenanceDAO.createMaintenance(maintenance);
-            
-            HttpSession session = request.getSession();
-            if (result > 0) {
-                session.setAttribute("success", "Thêm lịch bảo trì thành công!");
-                response.sendRedirect("maintenance?carId=" + carId);
-            } else {
-                session.setAttribute("error", "Không thể thêm lịch bảo trì!");
-                response.sendRedirect("maintenance?action=create&carId=" + carId);
-            }
-            
-        } catch (Exception e) {
-            HttpSession session = request.getSession();
-            session.setAttribute("error", "Lỗi: " + e.getMessage());
-            response.sendRedirect("maintenance?action=create");
-        }
-    }
-
-    private void updateMaintenance(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        
-        try {
-            int maintenanceId = Integer.parseInt(request.getParameter("maintenanceId"));
-            
-            MaintenanceRecord maintenance = maintenanceDAO.getMaintenanceById(maintenanceId);
-            
-            if (maintenance == null) {
-                HttpSession session = request.getSession();
-                session.setAttribute("error", "Không tìm thấy lịch bảo trì!");
+            // Check permission
+            Car car = carDAO.getCarById(carId);
+            if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
+                request.setAttribute("error", "Bạn không có quyền thêm lịch bảo trì cho xe này");
                 response.sendRedirect("maintenance");
                 return;
             }
             
-            // Get form parameters
+            // Parse dates for validation
+            Date serviceDate = null;
+            Date nextServiceDate = null;
+            
+            if (serviceDateStr != null && !serviceDateStr.isEmpty()) {
+                serviceDate = Date.valueOf(serviceDateStr);
+            }
+            
+            if (nextServiceDateStr != null && !nextServiceDateStr.isEmpty()) {
+                nextServiceDate = Date.valueOf(nextServiceDateStr);
+            }
+            
+            // Check if there are existing bookings in the maintenance period
+            if (serviceDate != null) {
+                Date endDate = nextServiceDate != null ? nextServiceDate : serviceDate;
+                
+                if (bookingDAO.hasActiveBookingInPeriod(carId, serviceDate, endDate)) {
+                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 t\u1ea1o l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 booking trong kho\u1ea3ng th\u1eddi gian n\u00e0y. Vui l\u00f2ng h\u1ee7y booking tr\u01b0\u1edbc.");
+                    showCreateForm(request, response, user);
+                    return;
+                }
+                
+                // Check if car is already blocked in CarAvailability
+                if (!availabilityDAO.isCarAvailableForDateRange(carId, serviceDate, endDate)) {
+                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 t\u1ea1o l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 l\u1ecbch kh\u00f4ng kh\u1ea3 d\u1ee5ng trong kho\u1ea3ng th\u1eddi gian n\u00e0y.");
+                    showCreateForm(request, response, user);
+                    return;
+                }
+            }
+            
+            // Create maintenance record
+            MaintenanceRecord maintenance = new MaintenanceRecord();
+            maintenance.setCarId(carId);
+            maintenance.setMaintenanceType(maintenanceType);
+            maintenance.setDescription(description);
+            maintenance.setServiceProvider(serviceProvider);
+            
+            // Set service date (already parsed)
+            if (serviceDate != null) {
+                maintenance.setServiceDate(new Timestamp(serviceDate.getTime()));
+            }
+            
+            // Parse service cost
+            if (serviceCostStr != null && !serviceCostStr.isEmpty()) {
+                maintenance.setServiceCost(new BigDecimal(serviceCostStr));
+            }
+            
+            // Set next service date (already parsed)
+            if (nextServiceDate != null) {
+                maintenance.setNextServiceDate(nextServiceDate);
+            }
+            
+            maintenance.setStatus(status);
+            maintenance.setPerformedBy(user.getUserId());
+            maintenance.setNotes(notes);
+            
+            int result = maintenanceDAO.createMaintenance(maintenance);
+            
+            if (result > 0) {
+                HttpSession session = request.getSession();
+                session.setAttribute("success", "Đã thêm lịch bảo trì thành công");
+                response.sendRedirect("maintenance?carId=" + carId);
+            } else {
+                request.setAttribute("error", "Không thể thêm lịch bảo trì");
+                showCreateForm(request, response, user);
+            }
+        } catch (Exception e) {
+            request.setAttribute("error", "Lỗi: " + e.getMessage());
+            showCreateForm(request, response, user);
+        }
+    }
+
+    /**
+     * Update maintenance record
+     */
+    private void updateMaintenance(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        try {
+            int maintenanceId = Integer.parseInt(request.getParameter("maintenanceId"));
             int carId = Integer.parseInt(request.getParameter("carId"));
             String maintenanceType = request.getParameter("maintenanceType");
             String description = request.getParameter("description");
@@ -249,110 +316,154 @@ public class MaintenanceServlet extends HttpServlet {
             String status = request.getParameter("status");
             String notes = request.getParameter("notes");
             
-            // Update values
+            // Check permission
+            Car car = carDAO.getCarById(carId);
+            if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
+                request.setAttribute("error", "Bạn không có quyền chỉnh sửa");
+                response.sendRedirect("maintenance");
+                return;
+            }
+            
+            // Parse dates for validation
+            Date serviceDate = null;
+            Date nextServiceDate = null;
+            
+            if (serviceDateStr != null && !serviceDateStr.isEmpty()) {
+                serviceDate = Date.valueOf(serviceDateStr);
+            }
+            
+            if (nextServiceDateStr != null && !nextServiceDateStr.isEmpty()) {
+                nextServiceDate = Date.valueOf(nextServiceDateStr);
+            }
+            
+            // Check if there are existing bookings in the maintenance period
+            if (serviceDate != null) {
+                Date endDate = nextServiceDate != null ? nextServiceDate : serviceDate;
+                
+                if (bookingDAO.hasActiveBookingInPeriod(carId, serviceDate, endDate)) {
+                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 booking trong kho\u1ea3ng th\u1eddi gian n\u00e0y. Vui l\u00f2ng h\u1ee7y booking tr\u01b0\u1edbc.");
+                    showEditForm(request, response, user);
+                    return;
+                }
+                
+                // Check if car is already blocked in CarAvailability
+                if (!availabilityDAO.isCarAvailableForDateRange(carId, serviceDate, endDate)) {
+                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 l\u1ecbch kh\u00f4ng kh\u1ea3 d\u1ee5ng trong kho\u1ea3ng th\u1eddi gian n\u00e0y.");
+                    showEditForm(request, response, user);
+                    return;
+                }
+            }
+            
+            // Update maintenance record
+            MaintenanceRecord maintenance = new MaintenanceRecord();
+            maintenance.setMaintenanceId(maintenanceId);
             maintenance.setCarId(carId);
             maintenance.setMaintenanceType(maintenanceType);
             maintenance.setDescription(description);
             maintenance.setServiceProvider(serviceProvider);
             
-            // Convert date strings
-            if (serviceDateStr != null && !serviceDateStr.isEmpty()) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                java.util.Date date = sdf.parse(serviceDateStr);
-                maintenance.setServiceDate(new Timestamp(date.getTime()));
+            // Set service date (already parsed)
+            if (serviceDate != null) {
+                maintenance.setServiceDate(new Timestamp(serviceDate.getTime()));
             }
             
+            // Parse service cost
             if (serviceCostStr != null && !serviceCostStr.isEmpty()) {
                 maintenance.setServiceCost(new BigDecimal(serviceCostStr));
-            } else {
-                maintenance.setServiceCost(null);
             }
             
-            if (nextServiceDateStr != null && !nextServiceDateStr.isEmpty()) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                java.util.Date date = sdf.parse(nextServiceDateStr);
-                maintenance.setNextServiceDate(new Date(date.getTime()));
-            } else {
-                maintenance.setNextServiceDate(null);
+            // Set next service date (already parsed)
+            if (nextServiceDate != null) {
+                maintenance.setNextServiceDate(nextServiceDate);
             }
             
             maintenance.setStatus(status);
-            maintenance.setNotes(notes);
             maintenance.setPerformedBy(user.getUserId());
+            maintenance.setNotes(notes);
             
-            // Update maintenance record
             boolean result = maintenanceDAO.updateMaintenance(maintenance);
             
-            HttpSession session = request.getSession();
             if (result) {
-                session.setAttribute("success", "Cập nhật lịch bảo trì thành công!");
+                HttpSession session = request.getSession();
+                session.setAttribute("success", "Đã cập nhật lịch bảo trì thành công");
+                response.sendRedirect("maintenance?carId=" + carId);
             } else {
-                session.setAttribute("error", "Không thể cập nhật lịch bảo trì!");
+                request.setAttribute("error", "Không thể cập nhật lịch bảo trì");
+                showEditForm(request, response, user);
             }
-            
-            response.sendRedirect("maintenance?carId=" + carId);
-            
         } catch (Exception e) {
-            HttpSession session = request.getSession();
-            session.setAttribute("error", "Lỗi: " + e.getMessage());
-            response.sendRedirect("maintenance");
+            request.setAttribute("error", "Lỗi: " + e.getMessage());
+            showEditForm(request, response, user);
         }
     }
 
-    private void deleteMaintenance(HttpServletRequest request, HttpServletResponse response)
+    /**
+     * Delete maintenance record
+     */
+    private void deleteMaintenance(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
+        int maintenanceId = Integer.parseInt(request.getParameter("id"));
+        MaintenanceRecord maintenance = maintenanceDAO.getMaintenanceById(maintenanceId);
         
-        try {
-            int maintenanceId = Integer.parseInt(request.getParameter("id"));
-            String carIdStr = request.getParameter("carId");
-            
-            boolean result = maintenanceDAO.deleteMaintenance(maintenanceId);
-            
+        if (maintenance == null) {
             HttpSession session = request.getSession();
-            if (result) {
-                session.setAttribute("success", "Xóa lịch bảo trì thành công!");
-            } else {
-                session.setAttribute("error", "Không thể xóa lịch bảo trì!");
-            }
-            
-            if (carIdStr != null && !carIdStr.isEmpty()) {
-                response.sendRedirect("maintenance?carId=" + carIdStr);
-            } else {
-                response.sendRedirect("maintenance");
-            }
-            
-        } catch (Exception e) {
-            HttpSession session = request.getSession();
-            session.setAttribute("error", "Lỗi: " + e.getMessage());
+            session.setAttribute("error", "Không tìm thấy lịch bảo trì");
             response.sendRedirect("maintenance");
+            return;
         }
+        
+        // Check permission
+        Car car = carDAO.getCarById(maintenance.getCarId());
+        if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
+            HttpSession session = request.getSession();
+            session.setAttribute("error", "Bạn không có quyền xóa");
+            response.sendRedirect("maintenance");
+            return;
+        }
+        
+        boolean result = maintenanceDAO.deleteMaintenance(maintenanceId);
+        
+        HttpSession session = request.getSession();
+        if (result) {
+            session.setAttribute("success", "Đã xóa lịch bảo trì thành công");
+        } else {
+            session.setAttribute("error", "Không thể xóa lịch bảo trì");
+        }
+        response.sendRedirect("maintenance");
     }
 
-    private void completeMaintenance(HttpServletRequest request, HttpServletResponse response)
+    /**
+     * Mark maintenance as completed
+     */
+    private void completeMaintenance(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
+        int maintenanceId = Integer.parseInt(request.getParameter("id"));
+        MaintenanceRecord maintenance = maintenanceDAO.getMaintenanceById(maintenanceId);
         
-        try {
-            int maintenanceId = Integer.parseInt(request.getParameter("id"));
-            String carIdStr = request.getParameter("carId");
-            
-            boolean result = maintenanceDAO.updateMaintenanceStatus(maintenanceId, "Completed");
-            
+        if (maintenance == null) {
             HttpSession session = request.getSession();
-            if (result) {
-                session.setAttribute("success", "Đã đánh dấu hoàn thành!");
-            } else {
-                session.setAttribute("error", "Không thể cập nhật trạng thái!");
-            }
-            
-            if (carIdStr != null && !carIdStr.isEmpty()) {
-                response.sendRedirect("maintenance?carId=" + carIdStr);
-            } else {
-                response.sendRedirect("maintenance");
-            }
-            
-        } catch (Exception e) {
+            session.setAttribute("error", "Không tìm thấy lịch bảo trì");
+            response.sendRedirect("maintenance");
+            return;
+        }
+        
+        // Check permission
+        Car car = carDAO.getCarById(maintenance.getCarId());
+        if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
             HttpSession session = request.getSession();
-            session.setAttribute("error", "Lỗi: " + e.getMessage());
+            session.setAttribute("error", "Bạn không có quyền cập nhật");
+            response.sendRedirect("maintenance");
+            return;
+        }
+        
+        boolean result = maintenanceDAO.updateMaintenanceStatus(maintenanceId, "Completed");
+        
+        HttpSession session = request.getSession();
+        if (result) {
+            session.setAttribute("success", "Đã hoàn thành bảo trì");
+            response.sendRedirect("maintenance?carId=" + maintenance.getCarId());
+        } else {
+            session.setAttribute("error", "Không thể cập nhật trạng thái");
             response.sendRedirect("maintenance");
         }
     }
