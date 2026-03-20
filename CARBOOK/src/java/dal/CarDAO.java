@@ -264,6 +264,60 @@ public class CarDAO extends DBContext {
         }
         return false;
     }
+
+    public boolean isLicensePlateExists(String licensePlate) {
+        String sql = "SELECT 1 FROM Cars WHERE LicensePlate = ?";
+        try {
+            PreparedStatement stm = connection.prepareStatement(sql);
+            stm.setString(1, licensePlate);
+            ResultSet rs = stm.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            System.out.println("Error checking license plate: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean isLicensePlateExistsForOtherCar(String licensePlate, int carId) {
+        String sql = "SELECT 1 FROM Cars WHERE LicensePlate = ? AND CarID <> ?";
+        try {
+            PreparedStatement stm = connection.prepareStatement(sql);
+            stm.setString(1, licensePlate);
+            stm.setInt(2, carId);
+            ResultSet rs = stm.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            System.out.println("Error checking license plate for other car: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean isVinNumberExists(String vinNumber) {
+        String sql = "SELECT 1 FROM Cars WHERE VINNumber = ?";
+        try {
+            PreparedStatement stm = connection.prepareStatement(sql);
+            stm.setString(1, vinNumber);
+            ResultSet rs = stm.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            System.out.println("Error checking VIN number: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean isVinNumberExistsForOtherCar(String vinNumber, int carId) {
+        String sql = "SELECT 1 FROM Cars WHERE VINNumber = ? AND CarID <> ?";
+        try {
+            PreparedStatement stm = connection.prepareStatement(sql);
+            stm.setString(1, vinNumber);
+            stm.setInt(2, carId);
+            ResultSet rs = stm.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            System.out.println("Error checking VIN number for other car: " + e.getMessage());
+            return false;
+        }
+    }
     
     /**
      * Update car status

@@ -13,7 +13,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -26,6 +29,17 @@ import jakarta.servlet.http.HttpSession;
  */
 @WebServlet(name = "CarManagementServlet", urlPatterns = {"/car-management"})
 public class CarManagementServlet extends HttpServlet {
+
+    private static final int ROLE_ADMIN = 1;
+    private static final int ROLE_CAR_OWNER = 2;
+    private static final int MIN_SEATS = 2;
+    private static final int MAX_SEATS = 50;
+    private static final Set<String> ALLOWED_STATUS = new HashSet<>(Arrays.asList(
+        "Available", "Rented", "Maintenance", "Inactive"
+    ));
+    private static final Set<String> ALLOWED_TRANSMISSION = new HashSet<>(Arrays.asList(
+        "Automatic", "Manual"
+    ));
 
     private CarDAO carDAO = new CarDAO();
     private CarBrandDAO brandDAO = new CarBrandDAO();
@@ -93,7 +107,7 @@ public class CarManagementServlet extends HttpServlet {
         } else if ("update".equals(action)) {
             updateCar(request, response, user);
         } else if ("updateStatus".equals(action)) {
-            updateCarStatus(request, response);
+            updateCarStatus(request, response, user);
         }
     }
 
@@ -113,9 +127,9 @@ public class CarManagementServlet extends HttpServlet {
         System.out.println("User Role: " + user.getRoleId());
         
         // Admin sees all cars, CarOwner sees only their cars
-        if (user.getRoleId() == 1) { // Admin
+        if (user.getRoleId() == ROLE_ADMIN) { // Admin
             cars = carDAO.getAllCars();
-        } else if (user.getRoleId() == 2) { // CarOwner
+        } else if (user.getRoleId() == ROLE_CAR_OWNER) { // CarOwner
             cars = carDAO.getCarsByOwnerId(user.getUserId());
         } else {
             cars = carDAO.getAvailableCars();
@@ -218,12 +232,19 @@ public class CarManagementServlet extends HttpServlet {
 
     private void viewCar(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        int carId = Integer.parseInt(request.getParameter("id"));
+        Integer carId = parsePositiveInt(request.getParameter("id"));
+        if (carId == null) {
+            HttpSession session = request.getSession();
+            session.setAttribute("error", "ID xe không hợp lệ");
+            response.sendRedirect("car-management");
+            return;
+        }
+
         Car car = carDAO.getCarById(carId);
         
         if (car == null) {
             HttpSession session = request.getSession();
-            session.setAttribute("error", "Không tìm thấy xe");
+            session.setAttribute("error", "Không tìm thấy xe với ID: " + carId);
             response.sendRedirect("car-management");
             return;
         }
@@ -235,74 +256,27 @@ public class CarManagementServlet extends HttpServlet {
   private void createCar(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         try {
-          
-            int modelId = Integer.parseInt(request.getParameter("modelId"));
-            model.CarModel selectedModel = modelDAO.getModelById(modelId);
-            int currentYear = java.time.LocalDate.now().getYear();
+            Car car = new Car();
+            car.setOwnerId(user.getUserId());
 
-            if (selectedModel != null && selectedModel.getYear() > currentYear) {
-                request.setAttribute("error", "Không thể thêm xe! Dòng xe " + selectedModel.getModelName() 
-                        + " có năm sản xuất (" + selectedModel.getYear() + ") lớn hơn năm hiện tại.");
-                showAddForm(request, response);
+            String validationError = validateAndPopulateCar(request, car);
+            if (validationError != null) {
+                request.setAttribute("error", validationError);
+                forwardCarForm(request, response, car);
                 return;
             }
 
-            
-            Car car = new Car();
-            car.setOwnerId(user.getUserId());
-            car.setModelId(modelId);
-            car.setCategoryId(Integer.parseInt(request.getParameter("categoryId")));
-            car.setLicensePlate(request.getParameter("licensePlate"));
-            car.setVinNumber(request.getParameter("vinNumber"));
-            car.setColor(request.getParameter("color"));
-            car.setSeats(Integer.parseInt(request.getParameter("seats")));
-            car.setFuelType(request.getParameter("fuelType"));
-            car.setTransmission(request.getParameter("transmission"));
-            
-            String mileageStr = request.getParameter("mileage");
-            if (mileageStr != null && !mileageStr.isEmpty()) {
-                car.setMileage(new BigDecimal(mileageStr));
-            }
-            
-            car.setPricePerDay(new BigDecimal(request.getParameter("pricePerDay")));
-            
-            String pricePerHourStr = request.getParameter("pricePerHour");
-            if (pricePerHourStr != null && !pricePerHourStr.isEmpty()) {
-                car.setPricePerHour(new BigDecimal(pricePerHourStr));
-            }
-            
-            car.setLocation(request.getParameter("location"));
-            car.setDescription(request.getParameter("description"));
-            car.setFeatures(request.getParameter("features"));
-            
-            String insuranceDate = request.getParameter("insuranceExpiryDate");
-            if (insuranceDate != null && !insuranceDate.isEmpty()) {
-                car.setInsuranceExpiryDate(Date.valueOf(insuranceDate));
-            }
-            
-            String registrationDate = request.getParameter("registrationExpiryDate");
-            if (registrationDate != null && !registrationDate.isEmpty()) {
-                car.setRegistrationExpiryDate(Date.valueOf(registrationDate));
-            }
-            
-            String status = request.getParameter("status");
-            if (status != null && !status.isEmpty()) {
-                car.setStatus(status);
-            } else {
-                car.setStatus("Available");
-            }
-            
             if (carDAO.createCar(car)) {
                 HttpSession session = request.getSession();
                 session.setAttribute("success", "Thêm xe thành công");
                 response.sendRedirect("car-management");
             } else {
-                request.setAttribute("error", "Lỗi khi thêm xe vào cơ sở dữ liệu");
-                showAddForm(request, response);
+                request.setAttribute("error", buildSaveErrorMessage(car));
+                forwardCarForm(request, response, car);
             }
         } catch (Exception e) {
             request.setAttribute("error", "Lỗi: " + e.getMessage());
-            showAddForm(request, response);
+            forwardCarForm(request, response, null);
         }
     }
     private void updateCar(HttpServletRequest request, HttpServletResponse response, User user)
@@ -324,114 +298,69 @@ public class CarManagementServlet extends HttpServlet {
             }
             
             // Check ownership
-            if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
+            if (user.getRoleId() != ROLE_ADMIN && car.getOwnerId() != user.getUserId()) {
                 // System.out.println("OWNERSHIP CHECK FAILED!");
                 // System.out.println("Car Owner ID: " + car.getOwnerId());
                 // System.out.println("Current User ID: " + user.getUserId());
                 // System.out.println("User Role ID: " + user.getRoleId());
                 // System.out.println("=======================");
-                
+
                 request.setAttribute("error", "Bạn không có quyền chỉnh sửa xe này");
-                request.setAttribute("car", car);
-                List<CarBrand> brands = brandDAO.getAllBrands();
-                List<CarCategory> categories = categoryDAO.getAllCategories();
-                List<CarModel> models = null;
-                if (car.getModel() != null && car.getModel().getBrandId() > 0) {
-                    models = modelDAO.getModelsByBrandId(car.getModel().getBrandId());
-                }
-                request.setAttribute("brands", brands);
-                request.setAttribute("categories", categories);
-                request.setAttribute("models", models);
-                request.getRequestDispatcher("car-form.jsp").forward(request, response);
+                forwardCarForm(request, response, car);
                 return;
             }
-            
-            car.setModelId(Integer.parseInt(request.getParameter("modelId")));
-            car.setCategoryId(Integer.parseInt(request.getParameter("categoryId")));
-            car.setLicensePlate(request.getParameter("licensePlate"));
-            car.setVinNumber(request.getParameter("vinNumber"));
-            car.setColor(request.getParameter("color"));
-            car.setSeats(Integer.parseInt(request.getParameter("seats")));
-            car.setFuelType(request.getParameter("fuelType"));
-            car.setTransmission(request.getParameter("transmission"));
-            
-            String mileageStr = request.getParameter("mileage");
-            if (mileageStr != null && !mileageStr.isEmpty()) {
-                car.setMileage(new BigDecimal(mileageStr));
+
+            String validationError = validateAndPopulateCar(request, car);
+            if (validationError != null) {
+                request.setAttribute("error", validationError);
+                forwardCarForm(request, response, car);
+                return;
             }
-            
-            car.setPricePerDay(new BigDecimal(request.getParameter("pricePerDay")));
-            
-            String pricePerHourStr = request.getParameter("pricePerHour");
-            if (pricePerHourStr != null && !pricePerHourStr.isEmpty()) {
-                car.setPricePerHour(new BigDecimal(pricePerHourStr));
-            }
-            
-            car.setLocation(request.getParameter("location"));
-            car.setDescription(request.getParameter("description"));
-            car.setFeatures(request.getParameter("features"));
-            
-            String insuranceDate = request.getParameter("insuranceExpiryDate");
-            if (insuranceDate != null && !insuranceDate.isEmpty()) {
-                car.setInsuranceExpiryDate(Date.valueOf(insuranceDate));
-            }
-            
-            String registrationDate = request.getParameter("registrationExpiryDate");
-            if (registrationDate != null && !registrationDate.isEmpty()) {
-                car.setRegistrationExpiryDate(Date.valueOf(registrationDate));
-            }
-            
-            String status = request.getParameter("status");
-            if (status != null && !status.isEmpty()) {
-                car.setStatus(status);
-            }
-            
+
             if (carDAO.updateCar(car)) {
                 HttpSession session = request.getSession();
                 session.setAttribute("success", "Cập nhật xe thành công");
                 response.sendRedirect("car-management");
             } else {
-                request.setAttribute("error", "Lỗi khi cập nhật xe vào cơ sở dữ liệu");
-                // Reload form data for editing
-                request.setAttribute("car", car);
-                List<CarBrand> brands = brandDAO.getAllBrands();
-                List<CarCategory> categories = categoryDAO.getAllCategories();
-                List<CarModel> models = null;
-                if (car.getModel() != null && car.getModel().getBrandId() > 0) {
-                    models = modelDAO.getModelsByBrandId(car.getModel().getBrandId());
-                }
-                request.setAttribute("brands", brands);
-                request.setAttribute("categories", categories);
-                request.setAttribute("models", models);
-                request.getRequestDispatcher("car-form.jsp").forward(request, response);
+                request.setAttribute("error", buildSaveErrorMessage(car));
+                forwardCarForm(request, response, car);
             }
         } catch (Exception e) {
             request.setAttribute("error", "Lỗi: " + e.getMessage());
             // Reload form data for editing
             Car car = carDAO.getCarById(Integer.parseInt(request.getParameter("carId")));
-            request.setAttribute("car", car);
-            List<CarBrand> brands = brandDAO.getAllBrands();
-            List<CarCategory> categories = categoryDAO.getAllCategories();
-            List<CarModel> models = null;
-            if (car != null && car.getModel() != null && car.getModel().getBrandId() > 0) {
-                models = modelDAO.getModelsByBrandId(car.getModel().getBrandId());
-            }
-            request.setAttribute("brands", brands);
-            request.setAttribute("categories", categories);
-            request.setAttribute("models", models);
-            request.getRequestDispatcher("car-form.jsp").forward(request, response);
+            forwardCarForm(request, response, car);
         }
     }
 
-    private void updateCarStatus(HttpServletRequest request, HttpServletResponse response)
+    private void updateCarStatus(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        int carId = Integer.parseInt(request.getParameter("carId"));
-        String status = request.getParameter("status");
-        
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        Integer carId = parsePositiveInt(request.getParameter("carId"));
+        String status = normalize(request.getParameter("status"));
+
+        if (carId == null || isBlank(status) || !ALLOWED_STATUS.contains(status)) {
+            response.getWriter().write("{\"success\": false, \"message\": \"Dữ liệu không hợp lệ\"}");
+            return;
+        }
+
+        Car car = carDAO.getCarById(carId);
+        if (car == null) {
+            response.getWriter().write("{\"success\": false, \"message\": \"Không tìm thấy xe\"}");
+            return;
+        }
+
+        if (user.getRoleId() != ROLE_ADMIN && car.getOwnerId() != user.getUserId()) {
+            response.getWriter().write("{\"success\": false, \"message\": \"Không có quyền cập nhật\"}");
+            return;
+        }
+
         if (carDAO.updateCarStatus(carId, status)) {
             response.getWriter().write("{\"success\": true}");
         } else {
-            response.getWriter().write("{\"success\": false}");
+            response.getWriter().write("{\"success\": false, \"message\": \"Cập nhật thất bại\"}");
         }
     }
 
@@ -448,7 +377,7 @@ public class CarManagementServlet extends HttpServlet {
         }
         
         // Check ownership
-        if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
+        if (user.getRoleId() != ROLE_ADMIN && car.getOwnerId() != user.getUserId()) {
             HttpSession session = request.getSession();
             session.setAttribute("error", "Bạn không có quyền xóa xe này");
             response.sendRedirect("car-management");
@@ -468,7 +397,7 @@ public class CarManagementServlet extends HttpServlet {
     private void verifyCar(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         // Only admin can verify cars
-        if (user.getRoleId() != 1) {
+        if (user.getRoleId() != ROLE_ADMIN) {
             HttpSession session = request.getSession();
             session.setAttribute("error", "Bạn không có quyền xác minh xe");
             response.sendRedirect("car-management");
@@ -486,5 +415,240 @@ public class CarManagementServlet extends HttpServlet {
         }
         
         response.sendRedirect("car-management");
+    }
+
+    private String validateAndPopulateCar(HttpServletRequest request, Car car) {
+        String licensePlate = normalize(request.getParameter("licensePlate"));
+        if (isBlank(licensePlate)) {
+            return "Biển số không được để trống";
+        }
+        if (licensePlate.length() > 20) {
+            return "Biển số không được vượt quá 20 ký tự";
+        }
+        car.setLicensePlate(licensePlate.toUpperCase());
+
+        if (car.getCarId() > 0) {
+            if (carDAO.isLicensePlateExistsForOtherCar(car.getLicensePlate(), car.getCarId())) {
+                return "Biển số đã tồn tại trong hệ thống";
+            }
+        } else if (carDAO.isLicensePlateExists(car.getLicensePlate())) {
+            return "Biển số đã tồn tại trong hệ thống";
+        }
+
+        Integer categoryId = parsePositiveInt(request.getParameter("categoryId"));
+        if (categoryId == null) {
+            return "Vui lòng chọn danh mục hợp lệ";
+        }
+        if (categoryDAO.getCategoryById(categoryId) == null) {
+            return "Danh mục xe không tồn tại";
+        }
+        car.setCategoryId(categoryId);
+
+        Integer brandId = parsePositiveInt(request.getParameter("brandId"));
+        if (brandId == null) {
+            return "Vui lòng chọn hãng xe hợp lệ";
+        }
+        if (brandDAO.getBrandById(brandId) == null) {
+            return "Hãng xe không tồn tại";
+        }
+
+        Integer modelId = parsePositiveInt(request.getParameter("modelId"));
+        if (modelId == null) {
+            return "Vui lòng chọn model hợp lệ";
+        }
+
+        CarModel selectedModel = modelDAO.getModelById(modelId);
+        if (selectedModel == null) {
+            return "Model không tồn tại";
+        }
+        if (selectedModel.getBrandId() != brandId) {
+            return "Model không thuộc hãng xe đã chọn";
+        }
+
+        int currentYear = java.time.LocalDate.now().getYear();
+        if (selectedModel.getYear() > currentYear) {
+            return "Không thể lưu xe! Dòng xe " + selectedModel.getModelName()
+                    + " có năm sản xuất (" + selectedModel.getYear() + ") lớn hơn năm hiện tại.";
+        }
+        car.setModelId(modelId);
+        car.setModel(selectedModel);
+
+        Integer seats = parsePositiveInt(request.getParameter("seats"));
+        if (seats == null || seats < MIN_SEATS || seats > MAX_SEATS) {
+            return "Số chỗ phải trong khoảng từ " + MIN_SEATS + " đến " + MAX_SEATS;
+        }
+        car.setSeats(seats);
+
+        BigDecimal pricePerDay = parseDecimal(request.getParameter("pricePerDay"));
+        if (pricePerDay == null || pricePerDay.compareTo(BigDecimal.ZERO) <= 0) {
+            return "Giá thuê/ngày phải lớn hơn 0";
+        }
+        car.setPricePerDay(pricePerDay);
+
+        String pricePerHourStr = normalize(request.getParameter("pricePerHour"));
+        if (!isBlank(pricePerHourStr)) {
+            BigDecimal pricePerHour = parseDecimal(pricePerHourStr);
+            if (pricePerHour == null || pricePerHour.compareTo(BigDecimal.ZERO) < 0) {
+                return "Giá thuê/giờ không hợp lệ";
+            }
+            car.setPricePerHour(pricePerHour);
+        } else {
+            car.setPricePerHour(null);
+        }
+
+        String mileageStr = normalize(request.getParameter("mileage"));
+        if (!isBlank(mileageStr)) {
+            BigDecimal mileage = parseDecimal(mileageStr);
+            if (mileage == null || mileage.compareTo(BigDecimal.ZERO) < 0) {
+                return "Số km đã đi không hợp lệ";
+            }
+            car.setMileage(mileage);
+        } else {
+            car.setMileage(null);
+        }
+
+        String transmission = normalize(request.getParameter("transmission"));
+        if (!isBlank(transmission) && !ALLOWED_TRANSMISSION.contains(transmission)) {
+            return "Hộp số không hợp lệ";
+        }
+        car.setTransmission(transmission);
+
+        String status = normalize(request.getParameter("status"));
+        if (isBlank(status)) {
+            status = "Available";
+        }
+        if (!ALLOWED_STATUS.contains(status)) {
+            return "Trạng thái không hợp lệ";
+        }
+        car.setStatus(status);
+
+        String insuranceDate = normalize(request.getParameter("insuranceExpiryDate"));
+        Date insuranceExpiryDate = parseDate(insuranceDate);
+        if (!isBlank(insuranceDate) && insuranceExpiryDate == null) {
+            return "Ngày hết hạn bảo hiểm không hợp lệ";
+        }
+        car.setInsuranceExpiryDate(insuranceExpiryDate);
+
+        String registrationDate = normalize(request.getParameter("registrationExpiryDate"));
+        Date registrationExpiryDate = parseDate(registrationDate);
+        if (!isBlank(registrationDate) && registrationExpiryDate == null) {
+            return "Ngày hết hạn đăng kiểm không hợp lệ";
+        }
+        car.setRegistrationExpiryDate(registrationExpiryDate);
+
+        String vinNumber = normalize(request.getParameter("vinNumber"));
+        if (!isBlank(vinNumber)) {
+            if (car.getCarId() > 0) {
+                if (carDAO.isVinNumberExistsForOtherCar(vinNumber, car.getCarId())) {
+                    return "Số VIN đã tồn tại trong hệ thống";
+                }
+            } else if (carDAO.isVinNumberExists(vinNumber)) {
+                return "Số VIN đã tồn tại trong hệ thống";
+            }
+        }
+
+        car.setVinNumber(vinNumber);
+        car.setColor(normalize(request.getParameter("color")));
+        car.setFuelType(normalize(request.getParameter("fuelType")));
+        car.setLocation(normalize(request.getParameter("location")));
+        car.setDescription(normalize(request.getParameter("description")));
+        car.setFeatures(normalize(request.getParameter("features")));
+
+        return null;
+    }
+
+    private void forwardCarForm(HttpServletRequest request, HttpServletResponse response, Car car)
+            throws ServletException, IOException {
+        List<CarBrand> brands = brandDAO.getAllBrands();
+        List<CarCategory> categories = categoryDAO.getAllCategories();
+
+        List<CarModel> models = null;
+        Integer brandId = parsePositiveInt(request.getParameter("brandId"));
+        if (brandId != null) {
+            models = modelDAO.getModelsByBrandId(brandId);
+        } else if (car != null && car.getModel() != null && car.getModel().getBrandId() > 0) {
+            models = modelDAO.getModelsByBrandId(car.getModel().getBrandId());
+        }
+
+        request.setAttribute("car", car);
+        request.setAttribute("brands", brands);
+        request.setAttribute("categories", categories);
+        request.setAttribute("models", models);
+        request.getRequestDispatcher("car-form.jsp").forward(request, response);
+    }
+
+    private Integer parsePositiveInt(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            if (parsed <= 0) {
+                return null;
+            }
+            return parsed;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private BigDecimal parseDecimal(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        try {
+            return new BigDecimal(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Date parseDate(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        try {
+            return Date.valueOf(value.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String buildSaveErrorMessage(Car car) {
+        if (!isBlank(car.getVinNumber())) {
+            if (car.getCarId() > 0) {
+                if (carDAO.isVinNumberExistsForOtherCar(car.getVinNumber(), car.getCarId())) {
+                    return "Số VIN đã tồn tại trong hệ thống";
+                }
+            } else if (carDAO.isVinNumberExists(car.getVinNumber())) {
+                return "Số VIN đã tồn tại trong hệ thống";
+            }
+        }
+
+        if (!isBlank(car.getLicensePlate())) {
+            if (car.getCarId() > 0) {
+                if (carDAO.isLicensePlateExistsForOtherCar(car.getLicensePlate(), car.getCarId())) {
+                    return "Biển số đã tồn tại trong hệ thống";
+                }
+            } else if (carDAO.isLicensePlateExists(car.getLicensePlate())) {
+                return "Biển số đã tồn tại trong hệ thống";
+            }
+        }
+
+        return car.getCarId() > 0
+                ? "Lỗi khi cập nhật xe vào cơ sở dữ liệu"
+                : "Lỗi khi thêm xe vào cơ sở dữ liệu";
     }
 }
