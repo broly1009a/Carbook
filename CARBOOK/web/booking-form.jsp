@@ -266,6 +266,22 @@
           // Format: yyyy-MM-dd HH:mm:ss
           var pickupFormatted = pickupYear + '-' + pickupMonth + '-' + pickupDay + ' ' + pickupTimeVal + ':00';
           var returnFormatted = returnYear + '-' + returnMonth + '-' + returnDay + ' ' + returnTimeVal + ':00';
+
+                    var pickupJsDate = new Date(pickupYear + '-' + pickupMonth + '-' + pickupDay + 'T' + pickupTimeVal + ':00');
+                    var returnJsDate = new Date(returnYear + '-' + returnMonth + '-' + returnDay + 'T' + returnTimeVal + ':00');
+                    var now = new Date();
+
+                    if (pickupJsDate < now) {
+                        alert('Thời gian nhận xe không được trước thời điểm hiện tại');
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    if (returnJsDate <= pickupJsDate) {
+                        alert('Thời gian trả xe phải sau thời gian nhận xe');
+                        e.preventDefault();
+                        return false;
+                    }
           
           console.log('Pickup formatted: ' + pickupFormatted);
           console.log('Return formatted: ' + returnFormatted);

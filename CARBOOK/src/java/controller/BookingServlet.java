@@ -1,6 +1,7 @@
 package controller;
 
 import dal.BookingDAO;
+import dal.CarAvailabilityDAO;
 import dal.CarDAO;
 import dal.PaymentDAO;
 import dal.NotificationDAO;
@@ -31,6 +32,7 @@ import jakarta.servlet.http.HttpSession;
 public class BookingServlet extends HttpServlet {
 
     private BookingDAO bookingDAO = new BookingDAO();
+    private CarAvailabilityDAO availabilityDAO = new CarAvailabilityDAO();
     private CarDAO carDAO = new CarDAO();
     private PaymentDAO paymentDAO = new PaymentDAO();
     private NotificationDAO notificationDAO = new NotificationDAO();
@@ -232,6 +234,12 @@ public class BookingServlet extends HttpServlet {
                 response.sendRedirect("cars");
                 return;
             }
+
+            if (!"Available".equals(car.getStatus())) {
+                request.getSession().setAttribute("error", "Xe hiện không khả dụng để đặt");
+                response.sendRedirect("cars");
+                return;
+            }
             
             String pickupDateStr = request.getParameter("pickupDate");
             String returnDateStr = request.getParameter("returnDate");
@@ -251,6 +259,8 @@ public class BookingServlet extends HttpServlet {
             // Parse format: yyyy-MM-dd HH:mm:ss (already formatted from form)
             Timestamp pickupDate = Timestamp.valueOf(pickupDateStr);
             Timestamp returnDate = Timestamp.valueOf(returnDateStr);
+            java.sql.Date pickupSqlDate = new java.sql.Date(pickupDate.getTime());
+            java.sql.Date returnSqlDate = new java.sql.Date(returnDate.getTime());
             
             System.out.println("Pickup Date: " + pickupDate);
             System.out.println("Return Date: " + returnDate);
@@ -258,9 +268,38 @@ public class BookingServlet extends HttpServlet {
             // Validate dates
             LocalDateTime pickup = pickupDate.toLocalDateTime();
             LocalDateTime returnTime = returnDate.toLocalDateTime();
+            LocalDateTime now = LocalDateTime.now();
+
+            if (pickup.isBefore(now)) {
+                request.getSession().setAttribute("error", "Thời gian nhận xe không được trước thời điểm hiện tại");
+                request.setAttribute("car", car);
+                request.getRequestDispatcher("booking-form.jsp").forward(request, response);
+                return;
+            }
             
             if (returnTime.isBefore(pickup)) {
                 request.getSession().setAttribute("error", "Ngày trả xe phải sau ngày nhận xe");
+                request.setAttribute("car", car);
+                request.getRequestDispatcher("booking-form.jsp").forward(request, response);
+                return;
+            }
+
+            if (!availabilityDAO.isCarAvailableForDateRange(carId, pickupSqlDate, returnSqlDate)) {
+                request.getSession().setAttribute("error", "Xe không khả dụng trong khoảng thời gian bạn chọn");
+                request.setAttribute("car", car);
+                request.getRequestDispatcher("booking-form.jsp").forward(request, response);
+                return;
+            }
+
+            if (bookingDAO.hasActiveBookingInPeriod(carId, pickupSqlDate, returnSqlDate)) {
+                request.getSession().setAttribute("error", "Xe đã có booking trong khoảng thời gian này. Vui lòng chọn thời gian khác.");
+                request.setAttribute("car", car);
+                request.getRequestDispatcher("booking-form.jsp").forward(request, response);
+                return;
+            }
+
+            if (bookingDAO.hasActiveMaintenanceInPeriod(carId, pickupSqlDate, returnSqlDate)) {
+                request.getSession().setAttribute("error", "Xe đang có lịch bảo trì trong khoảng thời gian này. Vui lòng chọn thời gian khác.");
                 request.setAttribute("car", car);
                 request.getRequestDispatcher("booking-form.jsp").forward(request, response);
                 return;
