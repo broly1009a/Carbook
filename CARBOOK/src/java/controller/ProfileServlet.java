@@ -72,6 +72,31 @@ public class ProfileServlet extends HttpServlet {
             request.getRequestDispatcher("profile.jsp").forward(request, response);
             return;
         }
+        //  Validate input cho PhoneNumber
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            request.setAttribute("error", "Số điện thoại không được để trống");
+            request.setAttribute("user", currentUser);
+            request.getRequestDispatcher("profile.jsp").forward(request, response);
+            return;
+        } else if (!phoneNumber.trim().matches("^0\\d{9}$")) {
+            request.setAttribute("error", "Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0");
+            request.setAttribute("user", currentUser);
+            request.getRequestDispatcher("profile.jsp").forward(request, response);
+            return;
+        }
+        
+        // Validate input cho Giấy phép lái xe (Driver License Number)
+        if (driverLicenseNumber == null || driverLicenseNumber.trim().isEmpty()) {
+            request.setAttribute("error", "Số giấy phép lái xe không được để trống");
+            request.setAttribute("user", currentUser);
+            request.getRequestDispatcher("profile.jsp").forward(request, response);
+            return;
+        } else if (!driverLicenseNumber.trim().matches("^\\d{12}$")) {
+            request.setAttribute("error", "Số giấy phép lái xe không hợp lệ. Vui lòng nhập đúng 12 chữ số");
+            request.setAttribute("user", currentUser);
+            request.getRequestDispatcher("profile.jsp").forward(request, response);
+            return;
+        }
         
         // Update user object
         currentUser.setFullName(fullName.trim());
@@ -80,13 +105,38 @@ public class ProfileServlet extends HttpServlet {
         currentUser.setDriverLicenseNumber(driverLicenseNumber != null ? driverLicenseNumber.trim() : null);
         currentUser.setProfileImageURL(profileImageURL != null ? profileImageURL.trim() : null);
         
-        // Parse dates
+       // Parse dates and Validate
         try {
+            // 1. Validate Ngày sinh
             if (dateOfBirthStr != null && !dateOfBirthStr.isEmpty()) {
-                currentUser.setDateOfBirth(Date.valueOf(dateOfBirthStr));
+                Date dob = Date.valueOf(dateOfBirthStr);
+                
+                // Lấy ra năm sinh và kiểm tra phải >= 1926
+                int birthYear = dob.toLocalDate().getYear();
+                if (birthYear < 1926) {
+                    request.setAttribute("error", "Năm sinh không hợp lệ)");
+                    request.setAttribute("user", currentUser);
+                    request.getRequestDispatcher("profile.jsp").forward(request, response);
+                    return;
+                }
+                currentUser.setDateOfBirth(dob);
             }
+            
+            // 2. Validate Ngày hết hạn GPLX
             if (driverLicenseExpiryStr != null && !driverLicenseExpiryStr.isEmpty()) {
-                currentUser.setDriverLicenseExpiry(Date.valueOf(driverLicenseExpiryStr));
+                Date expiryDate = Date.valueOf(driverLicenseExpiryStr);
+                
+                // Lấy năm hiện tại của hệ thống và so sánh
+                int currentYear = java.time.LocalDate.now().getYear();
+                int expiryYear = expiryDate.toLocalDate().getYear();
+                
+                if (expiryYear < currentYear) {
+                    request.setAttribute("error", "Năm hết hạn giấy phép lái xe không hợp lệ");
+                    request.setAttribute("user", currentUser);
+                    request.getRequestDispatcher("profile.jsp").forward(request, response);
+                    return;
+                }
+                currentUser.setDriverLicenseExpiry(expiryDate);
             }
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Định dạng ngày không hợp lệ");

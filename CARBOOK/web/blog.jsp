@@ -4,7 +4,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Blog - CarBook</title>
+    <title>Carbook - Free Bootstrap 4 Template by Colorlib</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     
@@ -39,8 +39,8 @@
       <div class="container">
         <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-start">
           <div class="col-md-9 ftco-animate pb-5">
-          	<p class="breadcrumbs"><span class="mr-2"><a href="index.jsp">Trang chủ <i class="ion-ios-arrow-forward"></i></a></span> <span>Blog <i class="ion-ios-arrow-forward"></i></span></p>
-            <h1 class="mb-3 bread">Blog của chúng tôi</h1>
+          	<p class="breadcrumbs"><span class="mr-2"><a href="index.html">Home <i class="ion-ios-arrow-forward"></i></a></span> <span>Blog <i class="ion-ios-arrow-forward"></i></span></p>
+            <h1 class="mb-3 bread">Our Blog</h1>
           </div>
         </div>
       </div>
@@ -48,109 +48,119 @@
 
     <section class="ftco-section">
       <div class="container">
-        <c:if test="${not empty error}">
-          <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            ${error}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-        </c:if>
-        
-        <c:if test="${not empty searchKeyword}">
-          <div class="alert alert-info">
-            Kết quả tìm kiếm cho: <strong>"${searchKeyword}"</strong> - Tìm thấy ${blogs.size()} kết quả
-          </div>
-        </c:if>
-        
-        <c:if test="${not empty categoryName}">
-          <div class="alert alert-info">
-            Danh mục: <strong>${categoryName}</strong>
-          </div>
-        </c:if>
-        
         <div class="row d-flex justify-content-center">
-          <c:choose>
-            <c:when test="${not empty blogs}">
-              <c:forEach var="blog" items="${blogs}">
-                <div class="col-md-12 text-center d-flex ftco-animate">
-                  <div class="blog-entry justify-content-end mb-md-5">
-                    <a href="blog?action=view&id=${blog.blogId}" class="block-20 img" 
-                       style="background-image: url('${not empty blog.imageURL ? blog.imageURL : 'images/image_1.jpg'}');">
-                    </a>
-                    <div class="text px-md-5 pt-4">
-                      <div class="meta mb-3">
-                        <div><a href="#"><fmt:formatDate value="${blog.createdAt}" pattern="MMM dd, yyyy" /></a></div>
-                        <div><a href="#">${not empty blog.author ? blog.author.fullName : 'Admin'}</a></div>
-                        <div><a href="#" class="meta-chat"><span class="icon-eye"></span> ${blog.viewCount}</a></div>
-                      </div>
-                      <h3 class="heading mt-2"><a href="blog?action=view&id=${blog.blogId}">${blog.title}</a></h3>
-                      <p>${blog.excerpt}</p>
-                      <p>
-                        <a href="blog?action=view&id=${blog.blogId}" class="btn btn-primary">
-                          Đọc tiếp <span class="icon-long-arrow-right"></span>
-                        </a>
-                        <c:if test="${not empty blog.categoryName}">
-                          <a href="blog?action=category&name=${blog.categoryName}" class="btn btn-outline-primary ml-2">
-                            <span class="icon-tag"></span> ${blog.categoryName}
-                          </a>
-                        </c:if>
-                      </p>
-                    </div>
-                  </div>
+          <div class="col-md-12 text-center d-flex ftco-animate">
+          	<div class="blog-entry justify-content-end mb-md-5">
+              <a href="blog-single.html" class="block-20 img" style="background-image: url('images/image_1.jpg');">
+              </a>
+              <div class="text px-md-5 pt-4">
+              	<div class="meta mb-3">
+                  <div><a href="#">Oct. 29, 2019</a></div>
+                  <div><a href="#">Admin</a></div>
+                  <div><a href="#" class="meta-chat"><span class="icon-chat"></span> 3</a></div>
                 </div>
-              </c:forEach>
-            </c:when>
-            <c:otherwise>
-              <div class="col-md-12 text-center">
-                <div class="alert alert-warning">
-                  <h4>Không tìm thấy bài viết nào</h4>
-                  <p>Hiện tại chưa có bài viết blog nào. Vui lòng quay lại sau.</p>
-                  <a href="index.jsp" class="btn btn-primary mt-3">Về trang chủ</a>
-                </div>
-              </div>
-            </c:otherwise>
-          </c:choose>
-        </div>
-        
-        <!-- Pagination -->
-        <c:if test="${totalPages > 1}">
-          <div class="row mt-5">
-            <div class="col text-center">
-              <div class="block-27">
-                <ul>
-                  <!-- Previous button -->
-                  <c:if test="${currentPage > 1}">
-                    <li><a href="blog?page=${currentPage - 1}">&lt;</a></li>
-                  </c:if>
-                  <c:if test="${currentPage == 1}">
-                    <li class="disabled"><span>&lt;</span></li>
-                  </c:if>
-                  
-                  <!-- Page numbers -->
-                  <c:forEach begin="1" end="${totalPages}" var="pageNum">
-                    <c:choose>
-                      <c:when test="${pageNum == currentPage}">
-                        <li class="active"><span>${pageNum}</span></li>
-                      </c:when>
-                      <c:otherwise>
-                        <li><a href="blog?page=${pageNum}">${pageNum}</a></li>
-                      </c:otherwise>
-                    </c:choose>
-                  </c:forEach>
-                  
-                  <!-- Next button -->
-                  <c:if test="${currentPage < totalPages}">
-                    <li><a href="blog?page=${currentPage + 1}">&gt;</a></li>
-                  </c:if>
-                  <c:if test="${currentPage == totalPages}">
-                    <li class="disabled"><span>&gt;</span></li>
-                  </c:if>
-                </ul>
+                <h3 class="heading mt-2"><a href="#">Why Lead Generation is Key for Business Growth</a></h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
+                <p><a href="blog-single.html" class="btn btn-primary">Continue <span class="icon-long-arrow-right"></span></a></p>
               </div>
             </div>
           </div>
-        </c:if>
+          <div class="col-md-12 text-center d-flex ftco-animate">
+          	<div class="blog-entry justify-content-end mb-md-5">
+              <a href="blog-single.html" class="block-20 img" style="background-image: url('images/image_2.jpg');">
+              </a>
+              <div class="text px-md-5 pt-4">
+              	<div class="meta mb-3">
+                  <div><a href="#">Oct. 29, 2019</a></div>
+                  <div><a href="#">Admin</a></div>
+                  <div><a href="#" class="meta-chat"><span class="icon-chat"></span> 3</a></div>
+                </div>
+                <h3 class="heading mt-2"><a href="#">Why Lead Generation is Key for Business Growth</a></h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
+                <p><a href="blog-single.html" class="btn btn-primary">Continue <span class="icon-long-arrow-right"></span></a></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 text-center d-flex ftco-animate">
+          	<div class="blog-entry">
+              <a href="blog-single.html" class="block-20 img" style="background-image: url('images/image_3.jpg');">
+              </a>
+              <div class="text px-md-5 pt-4">
+              	<div class="meta mb-3">
+                  <div><a href="#">Oct. 29, 2019</a></div>
+                  <div><a href="#">Admin</a></div>
+                  <div><a href="#" class="meta-chat"><span class="icon-chat"></span> 3</a></div>
+                </div>
+                <h3 class="heading mt-2"><a href="#">Why Lead Generation is Key for Business Growth</a></h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
+                <p><a href="blog-single.html" class="btn btn-primary">Continue <span class="icon-long-arrow-right"></span></a></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 text-center d-flex ftco-animate">
+          	<div class="blog-entry justify-content-end mb-md-5">
+              <a href="blog-single.html" class="block-20 img" style="background-image: url('images/image_4.jpg');">
+              </a>
+              <div class="text px-md-5 pt-4">
+              	<div class="meta mb-3">
+                  <div><a href="#">Oct. 29, 2019</a></div>
+                  <div><a href="#">Admin</a></div>
+                  <div><a href="#" class="meta-chat"><span class="icon-chat"></span> 3</a></div>
+                </div>
+                <h3 class="heading mt-2"><a href="#">Why Lead Generation is Key for Business Growth</a></h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
+                <p><a href="blog-single.html" class="btn btn-primary">Continue <span class="icon-long-arrow-right"></span></a></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 text-center d-flex ftco-animate">
+          	<div class="blog-entry justify-content-end mb-md-5">
+              <a href="blog-single.html" class="block-20 img" style="background-image: url('images/image_5.jpg');">
+              </a>
+              <div class="text px-md-5 pt-4">
+              	<div class="meta mb-3">
+                  <div><a href="#">Oct. 29, 2019</a></div>
+                  <div><a href="#">Admin</a></div>
+                  <div><a href="#" class="meta-chat"><span class="icon-chat"></span> 3</a></div>
+                </div>
+                <h3 class="heading mt-2"><a href="#">Why Lead Generation is Key for Business Growth</a></h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
+                <p><a href="blog-single.html" class="btn btn-primary">Continue <span class="icon-long-arrow-right"></span></a></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 text-center d-flex ftco-animate">
+          	<div class="blog-entry">
+              <a href="blog-single.html" class="block-20 img" style="background-image: url('images/image_6.jpg');">
+              </a>
+              <div class="text px-md-5 pt-4">
+              	<div class="meta mb-3">
+                  <div><a href="#">Oct. 29, 2019</a></div>
+                  <div><a href="#">Admin</a></div>
+                  <div><a href="#" class="meta-chat"><span class="icon-chat"></span> 3</a></div>
+                </div>
+                <h3 class="heading mt-2"><a href="#">Why Lead Generation is Key for Business Growth</a></h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia. It is a paradisematic country, in which roasted parts of sentences fly into your mouth.</p>
+                <p><a href="blog-single.html" class="btn btn-primary">Continue <span class="icon-long-arrow-right"></span></a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-5">
+          <div class="col text-center">
+            <div class="block-27">
+              <ul>
+                <li><a href="#">&lt;</a></li>
+                <li class="active"><span>1</span></li>
+                <li><a href="#">2</a></li>
+                <li><a href="#">3</a></li>
+                <li><a href="#">4</a></li>
+                <li><a href="#">5</a></li>
+                <li><a href="#">&gt;</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

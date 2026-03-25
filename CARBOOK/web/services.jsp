@@ -39,7 +39,7 @@
       <div class="container">
         <div class="row no-gutters slider-text js-fullheight align-items-end justify-content-start">
           <div class="col-md-9 ftco-animate pb-5">
-          	<p class="breadcrumbs"><span class="mr-2"><a href="index.jsp">Home <i class="ion-ios-arrow-forward"></i></a></span> <span>Services <i class="ion-ios-arrow-forward"></i></span></p>
+          	<p class="breadcrumbs"><span class="mr-2"><a href="index.html">Home <i class="ion-ios-arrow-forward"></i></a></span> <span>Services <i class="ion-ios-arrow-forward"></i></span></p>
             <h1 class="mb-3 bread">Our Services</h1>
           </div>
         </div>
@@ -50,65 +50,47 @@
 			<div class="container">
 				<div class="row justify-content-center mb-5">
           <div class="col-md-7 text-center heading-section ftco-animate">
-          	<span class="subheading">Dịch vụ</span>
-            <h2 class="mb-3">Các dịch vụ của chúng tôi</h2>
-            <c:if test="${not empty searchKeyword}">
-                <p class="text-muted">Kết quả tìm kiếm cho: "${searchKeyword}" - ${serviceCount} dịch vụ</p>
-            </c:if>
+          	<span class="subheading">Services</span>
+            <h2 class="mb-3">Our Latest Services</h2>
           </div>
         </div>
-        
-        <!-- Success/Error Messages -->
-        <c:if test="${not empty sessionScope.success}">
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                ${sessionScope.success}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <c:remove var="success" scope="session" />
-        </c:if>
-        
-        <c:if test="${not empty sessionScope.error}">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                ${sessionScope.error}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <c:remove var="error" scope="session" />
-        </c:if>
-        
 				<div class="row">
-					<c:choose>
-						<c:when test="${not empty services}">
-							<c:forEach var="service" items="${services}">
-								<div class="col-md-3">
-									<div class="services services-2 w-100 text-center">
-										<div class="icon d-flex align-items-center justify-content-center">
-											<span class="${service.iconClassOrDefault}"></span>
-										</div>
-										<div class="text w-100">
-											<h3 class="heading mb-2">${service.serviceName}</h3>
-											<p>${service.shortDescription}</p>
-											<c:if test="${service.price > 0}">
-												<p class="price"><strong>${service.formattedPrice}</strong></p>
-											</c:if>
-											<a href="#" class="btn btn-primary btn-sm" 
-											   onclick="if(confirm('Để đặt dịch vụ này, vui lòng liên hệ:\n\nSố điện thoại: +2 392 3929 210\nEmail: info@yourdomain.com\n\nBạn có muốn đến trang Liên hệ không?')) { window.location.href='contact.jsp'; } return false;">
-											   Đặt ngay
-											</a>
-										</div>
-									</div>
-								</div>
-							</c:forEach>
-						</c:when>
-						<c:otherwise>
-							<div class="col-md-12 text-center">
-								<p class="text-muted">Không có dịch vụ nào</p>
-							</div>
-						</c:otherwise>
-					</c:choose>
+					<div class="col-md-3">
+						<div class="services services-2 w-100 text-center">
+            	<div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-route"></span></div>
+            	<div class="text w-100">
+                <h3 class="heading mb-2">Wedding Ceremony</h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia.</p>
+              </div>
+            </div>
+					</div>
+					<div class="col-md-3">
+						<div class="services services-2 w-100 text-center">
+            	<div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-route"></span></div>
+            	<div class="text w-100">
+                <h3 class="heading mb-2">City Transfer</h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia.</p>
+              </div>
+            </div>
+					</div>
+					<div class="col-md-3">
+						<div class="services services-2 w-100 text-center">
+            	<div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-route"></span></div>
+            	<div class="text w-100">
+                <h3 class="heading mb-2">Airport Transfer</h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia.</p>
+              </div>
+            </div>
+					</div>
+					<div class="col-md-3">
+						<div class="services services-2 w-100 text-center">
+            	<div class="icon d-flex align-items-center justify-content-center"><span class="flaticon-route"></span></div>
+            	<div class="text w-100">
+                <h3 class="heading mb-2">Whole City Tour</h3>
+                <p>A small river named Duden flows by their place and supplies it with the necessary regelialia.</p>
+              </div>
+            </div>
+					</div>
 				</div>
 			</div>
 		</section>

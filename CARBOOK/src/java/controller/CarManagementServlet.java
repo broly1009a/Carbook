@@ -129,14 +129,6 @@ public class CarManagementServlet extends HttpServlet {
         // Admin sees all cars, CarOwner sees only their cars
         if (user.getRoleId() == ROLE_ADMIN) { // Admin
             cars = carDAO.getAllCars();
-            List<Car> filteredByPrice = new ArrayList<>();
-    for (Car car : cars) {
-        if (car.getPricePerDay() != null &&
-            car.getPricePerDay().compareTo(new BigDecimal("1000000")) < 0) {
-            filteredByPrice.add(car);
-        }
-    }
-    cars = filteredByPrice;
         } else if (user.getRoleId() == ROLE_CAR_OWNER) { // CarOwner
             cars = carDAO.getCarsByOwnerId(user.getUserId());
         } else {
@@ -488,14 +480,10 @@ public class CarManagementServlet extends HttpServlet {
         car.setSeats(seats);
 
         BigDecimal pricePerDay = parseDecimal(request.getParameter("pricePerDay"));
-if (pricePerDay == null || pricePerDay.compareTo(BigDecimal.ZERO) <= 0) {
-    return "Giá thuê/ngày phải lớn hơn 0";
-}
-
-
-pricePerDay = pricePerDay.add(new BigDecimal("1500000"));
-
-car.setPricePerDay(pricePerDay);
+        if (pricePerDay == null || pricePerDay.compareTo(BigDecimal.ZERO) <= 0) {
+            return "Giá thuê/ngày phải lớn hơn 0";
+        }
+        car.setPricePerDay(pricePerDay);
 
         String pricePerHourStr = normalize(request.getParameter("pricePerHour"));
         if (!isBlank(pricePerHourStr)) {
@@ -535,35 +523,18 @@ car.setPricePerDay(pricePerDay);
         car.setStatus(status);
 
         String insuranceDate = normalize(request.getParameter("insuranceExpiryDate"));
-Date insuranceExpiryDate = parseDate(insuranceDate);
+        Date insuranceExpiryDate = parseDate(insuranceDate);
+        if (!isBlank(insuranceDate) && insuranceExpiryDate == null) {
+            return "Ngày hết hạn bảo hiểm không hợp lệ";
+        }
+        car.setInsuranceExpiryDate(insuranceExpiryDate);
 
-Date today = new Date(System.currentTimeMillis()); // ngày hiện tại
-
-// validate format + phải lớn hơn hiện tại
-if (!isBlank(insuranceDate)) {
-    if (insuranceExpiryDate == null) {
-        return "Ngày hết hạn bảo hiểm không hợp lệ";
-    }
-    if (!insuranceExpiryDate.after(today)) {
-        return "Ngày hết hạn bảo hiểm phải lớn hơn ngày hiện tại";
-    }
-}
-car.setInsuranceExpiryDate(insuranceExpiryDate);
-
-
-// ================= ĐĂNG KIỂM =================
-String registrationDate = normalize(request.getParameter("registrationExpiryDate"));
-Date registrationExpiryDate = parseDate(registrationDate);
-
-if (!isBlank(registrationDate)) {
-    if (registrationExpiryDate == null) {
-        return "Ngày hết hạn đăng kiểm không hợp lệ";
-    }
-    if (!registrationExpiryDate.after(today)) {
-        return "Ngày hết hạn đăng kiểm phải lớn hơn ngày hiện tại";
-    }
-}
-car.setRegistrationExpiryDate(registrationExpiryDate);
+        String registrationDate = normalize(request.getParameter("registrationExpiryDate"));
+        Date registrationExpiryDate = parseDate(registrationDate);
+        if (!isBlank(registrationDate) && registrationExpiryDate == null) {
+            return "Ngày hết hạn đăng kiểm không hợp lệ";
+        }
+        car.setRegistrationExpiryDate(registrationExpiryDate);
 
         String vinNumber = normalize(request.getParameter("vinNumber"));
         if (!isBlank(vinNumber)) {

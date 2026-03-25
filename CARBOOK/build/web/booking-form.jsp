@@ -249,39 +249,23 @@
             return false;
           }
           
-          // Chuyển đổi dd/mm/yyyy + HH:mm sang yyyy-MM-dd HH:mm:ss
-          // Bootstrap datepicker trả về dd/mm/yyyy
+          // Chuyển đổi mm/dd/yyyy + HH:mm sang yyyy-MM-dd HH:mm:ss
+          // Bootstrap datepicker trả về mm/dd/yyyy theo US locale
           var pickupParts = pickupDateVal.split('/');
           var returnParts = returnDateVal.split('/');
           
-          // pickupParts[0] = day, pickupParts[1] = month, pickupParts[2] = year
-          var pickupDay = pickupParts[0].padStart(2, '0');
-          var pickupMonth = pickupParts[1].padStart(2, '0');
+          // pickupParts[0] = month, pickupParts[1] = day, pickupParts[2] = year
+          var pickupMonth = pickupParts[0].padStart(2, '0');
+          var pickupDay = pickupParts[1].padStart(2, '0');
           var pickupYear = pickupParts[2];
           
-          var returnDay = returnParts[0].padStart(2, '0');
-          var returnMonth = returnParts[1].padStart(2, '0');
+          var returnMonth = returnParts[0].padStart(2, '0');
+          var returnDay = returnParts[1].padStart(2, '0');
           var returnYear = returnParts[2];
           
           // Format: yyyy-MM-dd HH:mm:ss
           var pickupFormatted = pickupYear + '-' + pickupMonth + '-' + pickupDay + ' ' + pickupTimeVal + ':00';
           var returnFormatted = returnYear + '-' + returnMonth + '-' + returnDay + ' ' + returnTimeVal + ':00';
-
-                    var pickupJsDate = new Date(pickupYear + '-' + pickupMonth + '-' + pickupDay + 'T' + pickupTimeVal + ':00');
-                    var returnJsDate = new Date(returnYear + '-' + returnMonth + '-' + returnDay + 'T' + returnTimeVal + ':00');
-                    var now = new Date();
-
-                    if (pickupJsDate < now) {
-                        alert('Thời gian nhận xe không được trước thời điểm hiện tại');
-                        e.preventDefault();
-                        return false;
-                    }
-
-                    if (returnJsDate <= pickupJsDate) {
-                        alert('Thời gian trả xe phải sau thời gian nhận xe');
-                        e.preventDefault();
-                        return false;
-                    }
           
           console.log('Pickup formatted: ' + pickupFormatted);
           console.log('Return formatted: ' + returnFormatted);

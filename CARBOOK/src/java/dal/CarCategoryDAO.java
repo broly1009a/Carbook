@@ -152,7 +152,7 @@ public class CarCategoryDAO extends DBContext {
         category.setCreatedAt(rs.getTimestamp("CreatedAt"));
         return category;
     }
-    
+    // co xe dang dung 
     public boolean isCategoryInUse(int categoryId) {
     String sql = "SELECT COUNT(*) FROM Cars WHERE CategoryID = ?";
     try {
@@ -166,5 +166,67 @@ public class CarCategoryDAO extends DBContext {
         System.out.println("Error checking category usage: " + e.getMessage());
     }
     return false;
+}
+    
+    /**
+ * Kiểm tra xem tên phân loại đã tồn tại trong Database chưa (Dùng cho ADD)
+ * @param categoryName Tên phân loại cần kiểm tra
+ * @return true nếu đã tồn tại, false nếu chưa
+ */
+public boolean isCategoryNameExists(String categoryName) {
+    String sql = "SELECT COUNT(*) FROM CarCategories WHERE CategoryName = ?";
+    try (PreparedStatement stm = connection.prepareStatement(sql)) {
+        stm.setString(1, categoryName.trim());
+        try (ResultSet rs = stm.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+    } catch (SQLException e) {
+        System.out.println("Error isCategoryNameExists: " + e.getMessage());
+    }
+    return false;
+}
+
+/**
+ * Kiểm tra xem tên phân loại đã tồn tại chưa, nhưng bỏ qua bản ghi hiện tại (Dùng cho EDIT)
+ * @param categoryName Tên mới muốn cập nhật
+ * @param excludeId ID của phân loại đang sửa
+ * @return true nếu trùng với phân loại KHÁC, false nếu không trùng
+ */
+public boolean isCategoryNameExists(String categoryName, int excludeId) {
+    String sql = "SELECT COUNT(*) FROM CarCategories WHERE CategoryName = ? AND CategoryID != ?";
+    try (PreparedStatement stm = connection.prepareStatement(sql)) {
+        stm.setString(1, categoryName.trim());
+        stm.setInt(2, excludeId);
+        try (ResultSet rs = stm.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+    } catch (SQLException e) {
+        System.out.println("Error isCategoryNameExists (exclude): " + e.getMessage());
+    }
+    return false;
+}
+
+
+public List<CarCategory> searchCategoriesByName(String name) {
+    List<CarCategory> list = new ArrayList<>();
+    if (name == null) name = ""; 
+    
+    String sql = "SELECT * FROM CarCategories WHERE CategoryName LIKE ? ORDER BY CategoryName";
+    try (PreparedStatement stm = connection.prepareStatement(sql)) {
+
+        stm.setString(1, "%" + name.trim() + "%");
+        try (ResultSet rs = stm.executeQuery()) {
+            while (rs.next()) {
+                list.add(extractCategoryFromResultSet(rs));
+            }
+        }
+    } catch (SQLException e) {
+        System.err.println("Error searchCategoriesByName: " + e.getMessage());
+    }
+    return list;
 }
 }

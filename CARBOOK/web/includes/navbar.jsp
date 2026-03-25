@@ -53,7 +53,13 @@
                                     <div class="dropdown-divider"></div>
                                     <h6 class="dropdown-header">Quản trị</h6>
                                     <a class="dropdown-item" href="role-management">Vai trò</a>
+                                    <a class="dropdown-item " href="verify"> Phê duyệt xe mới</a>
                                     <a class="dropdown-item" href="car-management">Quản lý xe</a>
+                                     <a class="dropdown-item" href="brand">Quản lý hãng xe</a>
+                                      <a class="dropdown-item" href="car-models">Quản lý dòng xe</a>
+                                       <a class="dropdown-item" href="car-images">Quản lý ảnh xe</a>                                  
+                                    <a class="dropdown-item" href="assign-role">Nâng/Hạ quyền</a>
+                                     <a class="dropdown-item" href="users">Quản lý người dùng</a>
                                     <a class="dropdown-item" href="car-availability">Lịch không khả dụng</a>
                                     <a class="dropdown-item" href="maintenance">Quản lý bảo trì</a>
                                     <a class="dropdown-item" href="booking?action=list">Tất cả booking</a>
@@ -64,6 +70,7 @@
                                     <div class="dropdown-divider"></div>
                                     <h6 class="dropdown-header">Chủ xe</h6>
                                     <a class="dropdown-item" href="car-management">Xe của tôi</a>
+                                    <a class="dropdown-item" href="brand?action=list">Danh sách hãng</a>
                                     <a class="dropdown-item" href="car-availability">Quản lý lịch xe</a>
                                     <a class="dropdown-item" href="maintenance">Lịch bảo trì</a>
                                     <a class="dropdown-item" href="booking?action=list">Đơn đặt xe</a>

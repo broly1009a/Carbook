@@ -10,7 +10,7 @@ package constant;
  */
 public class Iconstant {
      public static final String GOOGLE_CLIENT_ID =
-        "237122045476-h962mp91qbrlobppot4keeldck31864o.apps.googleusercontent.com";
+        "";
      
 
     public static final String GOOGLE_CLIENT_SECRET =

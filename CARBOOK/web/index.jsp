@@ -29,11 +29,10 @@
     <link rel="stylesheet" href="css/icomoon.css">
     <link rel="stylesheet" href="css/style.css">
   </head>
-<body>
+  <body>
     
-	<%@ include file="includes/navbar.jsp" %> 
+	  <%@ include file="includes/navbar.jsp" %>
     <!-- END nav -->
-
     
     <div class="hero-wrap ftco-degree-bg" style="background-image: url('images/bg_1.jpg');" data-stellar-background-ratio="0.5">
       <div class="overlay"></div>

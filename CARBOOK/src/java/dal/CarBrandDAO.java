@@ -9,7 +9,7 @@ import java.util.List;
 
 public class CarBrandDAO extends DBContext {
 
-    // 1. Hàm kiểm tra ràng buộc: Trả về true nếu hãng đang được dùng ở bảng CarModels
+    //true neu dang dc dung
     public boolean hasModels(int brandId) {
         String sql = "SELECT COUNT(*) FROM CarModels WHERE BrandID = ?";
         try (PreparedStatement stm = connection.prepareStatement(sql)) {
@@ -25,9 +25,9 @@ public class CarBrandDAO extends DBContext {
         return false;
     }
 
-    // 2. Hàm xóa đơn thuần: Chỉ thực hiện lệnh xóa trong SQL
+ 
     public boolean deleteBrand(int brandId) {
-        // Lưu ý: Không gọi hasModels ở đây nữa để Servlet tự check và đưa ra thông báo phù hợp
+       
         String sql = "DELETE FROM CarBrands WHERE BrandID = ?";
         try (PreparedStatement stm = connection.prepareStatement(sql)) {
             stm.setInt(1, brandId);
@@ -38,7 +38,7 @@ public class CarBrandDAO extends DBContext {
         return false;
     }
 
-    // 3. Lấy tất cả hãng xe
+
     public List<CarBrand> getAllBrands() {
         List<CarBrand> brands = new ArrayList<>();
         String sql = "SELECT * FROM CarBrands ORDER BY BrandName";
@@ -53,7 +53,7 @@ public class CarBrandDAO extends DBContext {
         return brands;
     }
 
-    // 4. Lấy hãng theo ID
+
     public CarBrand getBrandById(int brandId) {
         String sql = "SELECT * FROM CarBrands WHERE BrandID = ?";
         try (PreparedStatement stm = connection.prepareStatement(sql)) {
@@ -69,7 +69,7 @@ public class CarBrandDAO extends DBContext {
         return null;
     }
 
-    // 5. Thêm hãng xe mới (Bạn nhớ thêm hàm này vào nhé)
+    
     public boolean createBrand(CarBrand brand) {
         String sql = "INSERT INTO CarBrands (BrandName, Country, LogoURL) VALUES (?, ?, ?)";
         try (PreparedStatement stm = connection.prepareStatement(sql)) {
@@ -83,7 +83,7 @@ public class CarBrandDAO extends DBContext {
         return false;
     }
 
-    // 6. Cập nhật hãng xe (Bạn nhớ thêm hàm này vào nhé)
+   
     public boolean updateBrand(CarBrand brand) {
         String sql = "UPDATE CarBrands SET BrandName = ?, Country = ?, LogoURL = ? WHERE BrandID = ?";
         try (PreparedStatement stm = connection.prepareStatement(sql)) {
@@ -107,4 +107,66 @@ public class CarBrandDAO extends DBContext {
         brand.setCreatedAt(rs.getTimestamp("CreatedAt")); 
         return brand;
     }
+
+public List<CarBrand> searchByName(String name) {
+    List<CarBrand> brands = new ArrayList<>();
+    String sql = "SELECT * FROM CarBrands WHERE BrandName LIKE ? ORDER BY BrandName";
+    try (PreparedStatement stm = connection.prepareStatement(sql)) {
+        stm.setString(1, "%" + name + "%");
+        ResultSet rs = stm.executeQuery();
+        while (rs.next()) {
+            brands.add(extractBrandFromResultSet(rs));
+        }
+    } catch (SQLException e) { e.printStackTrace(); }
+    return brands;
+}
+
+
+public List<CarBrand> searchByCountry(String country) {
+    List<CarBrand> brands = new ArrayList<>();
+    String sql = "SELECT * FROM CarBrands WHERE Country LIKE ? ORDER BY BrandName";
+    try (PreparedStatement stm = connection.prepareStatement(sql)) {
+        stm.setString(1, "%" + country + "%");
+        ResultSet rs = stm.executeQuery();
+        while (rs.next()) {
+            brands.add(extractBrandFromResultSet(rs));
+        }
+    } catch (SQLException e) { e.printStackTrace(); }
+    return brands;
+}
+
+
+
+public boolean isBrandNameExists(String brandName) {
+    String sql = "SELECT COUNT(*) FROM CarBrands WHERE BrandName = ?";
+    try (PreparedStatement stm = connection.prepareStatement(sql)) {
+        stm.setString(1, brandName.trim());
+        try (ResultSet rs = stm.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+    } catch (SQLException e) {
+        System.err.println("Error isBrandNameExists: " + e.getMessage());
+    }
+    return false;
+}
+
+
+public boolean isBrandNameExists(String brandName, int excludeId) {
+    String sql = "SELECT COUNT(*) FROM CarBrands WHERE BrandName = ? AND BrandID != ?";
+    try (PreparedStatement stm = connection.prepareStatement(sql)) {
+        stm.setString(1, brandName.trim());
+        stm.setInt(2, excludeId);
+        try (ResultSet rs = stm.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+    } catch (SQLException e) {
+        System.err.println("Error isBrandNameExists with excludeId: " + e.getMessage());
+    }
+    return false;
+}
+
 }

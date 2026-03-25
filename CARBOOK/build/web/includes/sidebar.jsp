@@ -132,6 +132,7 @@
                     </c:if>
                 </a>
             </li>
+        
             <li>
                 <a href="payment?action=list" class="${pageContext.request.requestURI.contains('payment') ? 'active' : ''}">
                     <i class="fa fa-money"></i> Tất cả thanh toán
@@ -154,7 +155,8 @@
                     <i class="fa fa-star"></i> Quản lý đánh giá
                 </a>
             </li>
-               <li>
+              <li class="menu-section">Liên Hệ</li>
+                <li>
                 <a href="contact?action=list" class="${pageContext.request.requestURI.contains('contact') ? 'active' : ''}">
                     <i class="fa fa-star"></i> Quản lý liên hệ
                 </a>

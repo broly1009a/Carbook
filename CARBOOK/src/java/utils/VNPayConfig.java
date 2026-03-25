@@ -49,26 +49,21 @@ public class VNPayConfig {
         
         StringBuilder sb = new StringBuilder();
         Iterator<String> itr = fieldNames.iterator();
-        boolean isFirst = true;
         
         while (itr.hasNext()) {
             String fieldName = itr.next();
             String fieldValue = fields.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                if (!isFirst) {
-                    sb.append("&");
-                }
                 sb.append(fieldName);
                 sb.append("=");
                 sb.append(fieldValue);
-                isFirst = false;
+            }
+            if (itr.hasNext()) {
+                sb.append("&");
             }
         }
         
-        System.out.println("VNPay hash data: " + sb.toString());
-        String hash = hmacSHA512(vnp_HashSecret, sb.toString());
-        System.out.println("VNPay computed hash: " + hash);
-        return hash;
+        return hmacSHA512(vnp_HashSecret, sb.toString());
     }
     
     /**

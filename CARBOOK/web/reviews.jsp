@@ -33,7 +33,7 @@
                         </c:choose>
                     </h2>
                 </div>
-                <c:if test="${sessionScope.user.roleId == 1}">
+                <c:if test="${sessionScope.user.roleId == 2}">
                     <div class="col-md-6 text-right">
                         <a href="review?action=myReviews" class="btn btn-${param.action == 'myReviews' ? 'primary' : 'outline-primary'}">Đánh giá của tôi</a>
                         <a href="review?action=pending" class="btn btn-${param.action == 'pending' ? 'primary' : 'outline-primary'}">Chờ duyệt</a>
@@ -82,7 +82,7 @@
                                         
                                         <p class="mt-2">${review.comment}</p>
                                         
-                                        <c:if test="${review.status == 'Pending' && sessionScope.user.roleId == 1}">
+                                        <c:if test="${review.status == 'Pending' && sessionScope.user.roleId == 2}">
                                             <div class="mt-2">
                                                 <a href="review?action=approve&id=${review.reviewId}" class="btn btn-sm btn-success" onclick="return confirm('Duyệt đánh giá này?')">Duyệt</a>
                                                 <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal${review.reviewId}">Từ chối</button>
@@ -148,21 +148,6 @@
     <%@ include file="includes/footer.jsp" %>
     
     <script src="js/jquery.min.js"></script>
-  <script src="js/jquery-migrate-3.0.1.min.js"></script>
-  <script src="js/popper.min.js"></script>
-  <script src="js/bootstrap.min.js"></script>
-  <script src="js/jquery.easing.1.3.js"></script>
-  <script src="js/jquery.waypoints.min.js"></script>
-  <script src="js/jquery.stellar.min.js"></script>
-  <script src="js/owl.carousel.min.js"></script>
-  <script src="js/jquery.magnific-popup.min.js"></script>
-  <script src="js/aos.js"></script>
-  <script src="js/jquery.animateNumber.min.js"></script>
-  <script src="js/bootstrap-datepicker.js"></script>
-  <script src="js/jquery.timepicker.min.js"></script>
-  <script src="js/scrollax.min.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVWaKrjvy3MaE7SQ74_uJiULgl1JY0H2s&sensor=false"></script>
-  <script src="js/google-map.js"></script>
-  <script src="js/main.js"></script>
+    <script src="js/bootstrap.min.js"></script>
 </body>
 </html>

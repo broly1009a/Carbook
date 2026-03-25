@@ -77,6 +77,41 @@
                 </a>
             </c:if>
         </div>
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form action="brand" method="get">
+            <input type="hidden" name="action" value="search"/>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text"
+                           name="nameSearch"
+                           value="${nameSearch}"
+                           class="form-control"
+                           placeholder="Tìm theo tên hãng...">
+                </div>
+
+                <div class="col-md-4">
+                    <input type="text"
+                           name="countrySearch"
+                           value="${countrySearch}"
+                           class="form-control"
+                           placeholder="Tìm theo quốc gia...">
+                </div>
+
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">
+                        Tìm kiếm
+                    </button>
+
+                    <a href="brand?action=list" class="btn btn-secondary">
+                        Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
         <div class="table-responsive">
             <table class="table table-hover border">

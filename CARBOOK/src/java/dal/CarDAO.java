@@ -17,23 +17,24 @@ import java.util.List;
  * CarDAO - Data Access Object for Car management
  */
 public class CarDAO extends DBContext {
-    
+
     private CarModelDAO modelDAO = new CarModelDAO();
     private CarCategoryDAO categoryDAO = new CarCategoryDAO();
     private CarBrandDAO brandDAO = new CarBrandDAO();
-    
+
     /**
      * Get all cars
+     *
      * @return List of all cars
      */
     public List<Car> getAllCars() {
         List<Car> cars = new ArrayList<>();
         String sql = "SELECT * FROM Cars ORDER BY CreatedAt DESC";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             ResultSet rs = stm.executeQuery();
-            
+
             while (rs.next()) {
                 cars.add(extractCarFromResultSet(rs));
             }
@@ -42,20 +43,21 @@ public class CarDAO extends DBContext {
         }
         return cars;
     }
-    
+
     /**
      * Get car by ID
+     *
      * @param carId
      * @return Car object or null
      */
     public Car getCarById(int carId) {
         String sql = "SELECT * FROM Cars WHERE CarID = ?";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setInt(1, carId);
             ResultSet rs = stm.executeQuery();
-            
+
             if (rs.next()) {
                 return extractCarFromResultSet(rs);
             }
@@ -64,21 +66,22 @@ public class CarDAO extends DBContext {
         }
         return null;
     }
-    
+
     /**
      * Get cars by owner ID
+     *
      * @param ownerId
      * @return List of cars owned by the user
      */
     public List<Car> getCarsByOwnerId(int ownerId) {
         List<Car> cars = new ArrayList<>();
         String sql = "SELECT * FROM Cars WHERE OwnerID = ? ORDER BY CreatedAt DESC";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setInt(1, ownerId);
             ResultSet rs = stm.executeQuery();
-            
+
             while (rs.next()) {
                 cars.add(extractCarFromResultSet(rs));
             }
@@ -87,19 +90,20 @@ public class CarDAO extends DBContext {
         }
         return cars;
     }
-    
+
     /**
      * Get available cars
+     *
      * @return List of available cars
      */
     public List<Car> getAvailableCars() {
         List<Car> cars = new ArrayList<>();
         String sql = "SELECT * FROM Cars WHERE Status = 'Available' AND IsVerified = 1 ORDER BY CreatedAt DESC";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             ResultSet rs = stm.executeQuery();
-            
+
             while (rs.next()) {
                 cars.add(extractCarFromResultSet(rs));
             }
@@ -108,21 +112,22 @@ public class CarDAO extends DBContext {
         }
         return cars;
     }
-    
+
     /**
      * Get cars by category
+     *
      * @param categoryId
      * @return List of cars in the category
      */
     public List<Car> getCarsByCategory(int categoryId) {
         List<Car> cars = new ArrayList<>();
         String sql = "SELECT * FROM Cars WHERE CategoryID = ? AND Status = 'Available' AND IsVerified = 1";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setInt(1, categoryId);
             ResultSet rs = stm.executeQuery();
-            
+
             while (rs.next()) {
                 cars.add(extractCarFromResultSet(rs));
             }
@@ -131,9 +136,10 @@ public class CarDAO extends DBContext {
         }
         return cars;
     }
-    
+
     /**
      * Search cars by criteria
+     *
      * @param keyword Search keyword
      * @param categoryId Category filter (0 for all)
      * @param minPrice Minimum price
@@ -143,7 +149,7 @@ public class CarDAO extends DBContext {
     public List<Car> searchCars(String keyword, int categoryId, double minPrice, double maxPrice) {
         List<Car> cars = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT * FROM Cars WHERE Status = 'Available' AND IsVerified = 1");
-        
+
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append(" AND (LicensePlate LIKE ? OR Description LIKE ?)");
         }
@@ -157,11 +163,11 @@ public class CarDAO extends DBContext {
             sql.append(" AND PricePerDay <= ?");
         }
         sql.append(" ORDER BY CreatedAt DESC");
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql.toString());
             int paramIndex = 1;
-            
+
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String searchPattern = "%" + keyword + "%";
                 stm.setString(paramIndex++, searchPattern);
@@ -176,7 +182,7 @@ public class CarDAO extends DBContext {
             if (maxPrice > 0) {
                 stm.setDouble(paramIndex++, maxPrice);
             }
-            
+
             ResultSet rs = stm.executeQuery();
             while (rs.next()) {
                 cars.add(extractCarFromResultSet(rs));
@@ -186,18 +192,19 @@ public class CarDAO extends DBContext {
         }
         return cars;
     }
-    
+
     /**
      * Create a new car
+     *
      * @param car
      * @return true if successful, false otherwise
      */
     public boolean createCar(Car car) {
-        String sql = "INSERT INTO Cars (OwnerID, ModelID, CategoryID, LicensePlate, VINNumber, Color, Seats, " +
-                     "FuelType, Transmission, Mileage, PricePerDay, PricePerHour, Status, Location, Description, " +
-                     "Features, InsuranceExpiryDate, RegistrationExpiryDate) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
+        String sql = "INSERT INTO Cars (OwnerID, ModelID, CategoryID, LicensePlate, VINNumber, Color, Seats, "
+                + "FuelType, Transmission, Mileage, PricePerDay, PricePerHour, Status, Location, Description, "
+                + "Features, InsuranceExpiryDate, RegistrationExpiryDate) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setInt(1, car.getOwnerId());
@@ -218,25 +225,26 @@ public class CarDAO extends DBContext {
             stm.setString(16, car.getFeatures());
             stm.setDate(17, car.getInsuranceExpiryDate());
             stm.setDate(18, car.getRegistrationExpiryDate());
-            
+
             return stm.executeUpdate() > 0;
         } catch (SQLException e) {
             System.out.println("Error creating car: " + e.getMessage());
         }
         return false;
     }
-    
+
     /**
      * Update car
+     *
      * @param car
      * @return true if successful, false otherwise
      */
     public boolean updateCar(Car car) {
-        String sql = "UPDATE Cars SET ModelID = ?, CategoryID = ?, LicensePlate = ?, VINNumber = ?, Color = ?, " +
-                     "Seats = ?, FuelType = ?, Transmission = ?, Mileage = ?, PricePerDay = ?, PricePerHour = ?, " +
-                     "Status = ?, Location = ?, Description = ?, Features = ?, InsuranceExpiryDate = ?, " +
-                     "RegistrationExpiryDate = ?, UpdatedAt = GETDATE() WHERE CarID = ?";
-        
+        String sql = "UPDATE Cars SET ModelID = ?, CategoryID = ?, LicensePlate = ?, VINNumber = ?, Color = ?, "
+                + "Seats = ?, FuelType = ?, Transmission = ?, Mileage = ?, PricePerDay = ?, PricePerHour = ?, "
+                + "Status = ?, Location = ?, Description = ?, Features = ?, InsuranceExpiryDate = ?, "
+                + "RegistrationExpiryDate = ?, UpdatedAt = GETDATE() WHERE CarID = ?";
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setInt(1, car.getModelId());
@@ -257,7 +265,7 @@ public class CarDAO extends DBContext {
             stm.setDate(16, car.getInsuranceExpiryDate());
             stm.setDate(17, car.getRegistrationExpiryDate());
             stm.setInt(18, car.getCarId());
-            
+
             return stm.executeUpdate() > 0;
         } catch (SQLException e) {
             System.out.println("Error updating car: " + e.getMessage());
@@ -318,70 +326,74 @@ public class CarDAO extends DBContext {
             return false;
         }
     }
-    
+
     /**
      * Update car status
+     *
      * @param carId
      * @param status
      * @return true if successful, false otherwise
      */
     public boolean updateCarStatus(int carId, String status) {
         String sql = "UPDATE Cars SET Status = ?, UpdatedAt = GETDATE() WHERE CarID = ?";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setString(1, status);
             stm.setInt(2, carId);
-            
+
             return stm.executeUpdate() > 0;
         } catch (SQLException e) {
             System.out.println("Error updating car status: " + e.getMessage());
         }
         return false;
     }
-    
+
     /**
      * Verify car
+     *
      * @param carId
      * @param isVerified
      * @return true if successful, false otherwise
      */
     public boolean verifyCar(int carId, boolean isVerified) {
         String sql = "UPDATE Cars SET IsVerified = ?, UpdatedAt = GETDATE() WHERE CarID = ?";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setBoolean(1, isVerified);
             stm.setInt(2, carId);
-            
+
             return stm.executeUpdate() > 0;
         } catch (SQLException e) {
             System.out.println("Error verifying car: " + e.getMessage());
         }
         return false;
     }
-    
+
     /**
      * Delete car
+     *
      * @param carId
      * @return true if successful, false otherwise
      */
     public boolean deleteCar(int carId) {
         String sql = "DELETE FROM Cars WHERE CarID = ?";
-        
+
         try {
             PreparedStatement stm = connection.prepareStatement(sql);
             stm.setInt(1, carId);
-            
+
             return stm.executeUpdate() > 0;
         } catch (SQLException e) {
             System.out.println("Error deleting car: " + e.getMessage());
         }
         return false;
     }
-    
+
     /**
      * Extract Car object from ResultSet
+     *
      * @param rs
      * @return Car object
      * @throws SQLException
@@ -410,15 +422,16 @@ public class CarDAO extends DBContext {
         car.setVerified(rs.getBoolean("IsVerified"));
         car.setCreatedAt(rs.getTimestamp("CreatedAt"));
         car.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
-        
+
         // Load related objects
         loadCarRelatedData(car);
-        
+
         return car;
     }
-    
+
     /**
      * Load related data for car (model, brand, category, image)
+     *
      * @param car
      */
     private void loadCarRelatedData(Car car) {
@@ -436,7 +449,7 @@ public class CarDAO extends DBContext {
                     car.setModel(model);
                 }
             }
-            
+
             // Load category
             if (car.getCategoryId() > 0) {
                 CarCategory category = categoryDAO.getCategoryById(car.getCategoryId());
@@ -444,7 +457,7 @@ public class CarDAO extends DBContext {
                     car.setCategory(category);
                 }
             }
-            
+
             // Load owner
             if (car.getOwnerId() > 0) {
                 UserDAO userDAO = new UserDAO();
@@ -453,7 +466,7 @@ public class CarDAO extends DBContext {
                     car.setOwner(owner);
                 }
             }
-            
+
             // Load first image
             String imageSql = "SELECT TOP 1 ImageURL FROM CarImages WHERE CarID = ? ORDER BY DisplayOrder";
             PreparedStatement stm = connection.prepareStatement(imageSql);
@@ -467,50 +480,52 @@ public class CarDAO extends DBContext {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * Get available cars during specified date range and location
+     *
      * @param pickupDate Pickup date string (yyyy-MM-dd or dd/MM/yyyy)
      * @param dropoffDate Dropoff date string (yyyy-MM-dd or dd/MM/yyyy)
      * @param pickupLocation Pickup location (optional)
      * @param dropoffLocation Dropoff location (optional)
      * @return List of available cars
      */
-    public List<Car> getAvailableCarsForBooking(String pickupDate, String dropoffDate, 
-                                                  String pickupLocation, String dropoffLocation) {
+    public List<Car> getAvailableCarsForBooking(String pickupDate, String dropoffDate,
+            String pickupLocation, String dropoffLocation) {
         List<Car> availableCars = new ArrayList<>();
-        
+
         // Get all available cars first
         List<Car> allCars = getAvailableCars();
-        
+
         // If no date filter, return all available cars
         if (pickupDate == null || pickupDate.isEmpty() || dropoffDate == null || dropoffDate.isEmpty()) {
             return filterByLocation(allCars, pickupLocation, dropoffLocation);
         }
-        
+
         try {
             // Convert date strings to SQL dates
             java.sql.Date sqlPickupDate = parseDateString(pickupDate);
             java.sql.Date sqlDropoffDate = parseDateString(dropoffDate);
-            
+
             // Filter cars by availability
             for (Car car : allCars) {
                 if (isCarAvailableForPeriod(car.getCarId(), sqlPickupDate, sqlDropoffDate)) {
                     availableCars.add(car);
                 }
             }
-            
+
             // Filter by location if provided
             return filterByLocation(availableCars, pickupLocation, dropoffLocation);
-            
+
         } catch (Exception e) {
             System.out.println("Error getting available cars for booking: " + e.getMessage());
             return allCars; // Return all cars if error
         }
     }
-    
+
     /**
      * Check if a car is available during the specified date range
+     *
      * @param carId Car ID
      * @param pickupDate Pickup date
      * @param dropoffDate Dropoff date
@@ -518,13 +533,13 @@ public class CarDAO extends DBContext {
      */
     public boolean isCarAvailableForPeriod(int carId, java.sql.Date pickupDate, java.sql.Date dropoffDate) {
         // Check for existing bookings
-        String sqlBookings = "SELECT COUNT(*) FROM Bookings " +
-                     "WHERE CarID = ? " +
-                     "AND Status NOT IN ('Cancelled', 'Rejected') " +
-                     "AND ((PickupDate <= ? AND ReturnDate >= ?) " +
-                     "OR (PickupDate <= ? AND ReturnDate >= ?) " +
-                     "OR (PickupDate >= ? AND ReturnDate <= ?))";
-        
+        String sqlBookings = "SELECT COUNT(*) FROM Bookings "
+                + "WHERE CarID = ? "
+                + "AND Status NOT IN ('Cancelled', 'Rejected') "
+                + "AND ((PickupDate <= ? AND ReturnDate >= ?) "
+                + "OR (PickupDate <= ? AND ReturnDate >= ?) "
+                + "OR (PickupDate >= ? AND ReturnDate <= ?))";
+
         try {
             PreparedStatement stm = connection.prepareStatement(sqlBookings);
             stm.setInt(1, carId);
@@ -534,7 +549,7 @@ public class CarDAO extends DBContext {
             stm.setDate(5, pickupDate);
             stm.setDate(6, pickupDate);
             stm.setDate(7, dropoffDate);
-            
+
             ResultSet rs = stm.executeQuery();
             if (rs.next()) {
                 int conflictCount = rs.getInt(1);
@@ -542,14 +557,14 @@ public class CarDAO extends DBContext {
                     return false; // Has booking conflicts
                 }
             }
-            
+
             // Check for blocked periods in CarAvailability
-            String sqlAvailability = "SELECT COUNT(*) FROM CarAvailability " +
-                     "WHERE CarID = ? AND IsAvailable = 0 " +
-                     "AND ((StartDate <= ? AND EndDate >= ?) " +
-                     "OR (StartDate <= ? AND EndDate >= ?) " +
-                     "OR (StartDate >= ? AND EndDate <= ?))";
-            
+            String sqlAvailability = "SELECT COUNT(*) FROM CarAvailability "
+                    + "WHERE CarID = ? AND IsAvailable = 0 "
+                    + "AND ((StartDate <= ? AND EndDate >= ?) "
+                    + "OR (StartDate <= ? AND EndDate >= ?) "
+                    + "OR (StartDate >= ? AND EndDate <= ?))";
+
             stm = connection.prepareStatement(sqlAvailability);
             stm.setInt(1, carId);
             stm.setDate(2, dropoffDate);
@@ -558,7 +573,7 @@ public class CarDAO extends DBContext {
             stm.setDate(5, pickupDate);
             stm.setDate(6, pickupDate);
             stm.setDate(7, dropoffDate);
-            
+
             rs = stm.executeQuery();
             if (rs.next()) {
                 int blockedCount = rs.getInt(1);
@@ -566,15 +581,15 @@ public class CarDAO extends DBContext {
                     return false; // Has blocked periods
                 }
             }
-            
+
             // Check for active maintenance (In Progress or Scheduled)
-            String sqlMaintenance = "SELECT COUNT(*) FROM MaintenanceRecords " +
-                     "WHERE CarID = ? " +
-                     "AND Status IN ('Scheduled', 'In Progress') " +
-                     "AND ((CAST(ServiceDate AS DATE) <= ? AND CAST(ISNULL(NextServiceDate, ServiceDate) AS DATE) >= ?) " +
-                     "OR (CAST(ServiceDate AS DATE) <= ? AND CAST(ISNULL(NextServiceDate, ServiceDate) AS DATE) >= ?) " +
-                     "OR (CAST(ServiceDate AS DATE) >= ? AND CAST(ServiceDate AS DATE) <= ?))";
-            
+            String sqlMaintenance = "SELECT COUNT(*) FROM MaintenanceRecords "
+                    + "WHERE CarID = ? "
+                    + "AND Status IN ('Scheduled', 'In Progress') "
+                    + "AND ((CAST(ServiceDate AS DATE) <= ? AND CAST(ISNULL(NextServiceDate, ServiceDate) AS DATE) >= ?) "
+                    + "OR (CAST(ServiceDate AS DATE) <= ? AND CAST(ISNULL(NextServiceDate, ServiceDate) AS DATE) >= ?) "
+                    + "OR (CAST(ServiceDate AS DATE) >= ? AND CAST(ServiceDate AS DATE) <= ?))";
+
             stm = connection.prepareStatement(sqlMaintenance);
             stm.setInt(1, carId);
             stm.setDate(2, dropoffDate);
@@ -583,7 +598,7 @@ public class CarDAO extends DBContext {
             stm.setDate(5, pickupDate);
             stm.setDate(6, pickupDate);
             stm.setDate(7, dropoffDate);
-            
+
             rs = stm.executeQuery();
             if (rs.next()) {
                 int maintenanceCount = rs.getInt(1);
@@ -591,49 +606,51 @@ public class CarDAO extends DBContext {
                     return false; // Has maintenance scheduled
                 }
             }
-            
+
             return true; // Available if no conflicts and not blocked
-            
+
         } catch (SQLException e) {
             System.out.println("Error checking car availability: " + e.getMessage());
         }
-        
+
         return true; // Default to available if error
     }
-    
+
     /**
      * Filter cars by location
+     *
      * @param cars List of cars to filter
      * @param pickupLocation Pickup location (optional)
      * @param dropoffLocation Dropoff location (optional)
      * @return Filtered list of cars
      */
     private List<Car> filterByLocation(List<Car> cars, String pickupLocation, String dropoffLocation) {
-        if ((pickupLocation == null || pickupLocation.trim().isEmpty()) && 
-            (dropoffLocation == null || dropoffLocation.trim().isEmpty())) {
+        if ((pickupLocation == null || pickupLocation.trim().isEmpty())
+                && (dropoffLocation == null || dropoffLocation.trim().isEmpty())) {
             return cars;
         }
-        
+
         List<Car> filteredCars = new ArrayList<>();
         for (Car car : cars) {
             String carLocation = car.getLocation();
             if (carLocation != null) {
-                boolean matchPickup = (pickupLocation == null || pickupLocation.trim().isEmpty() || 
-                                      carLocation.toLowerCase().contains(pickupLocation.toLowerCase()));
-                boolean matchDropoff = (dropoffLocation == null || dropoffLocation.trim().isEmpty() || 
-                                       carLocation.toLowerCase().contains(dropoffLocation.toLowerCase()));
-                
+                boolean matchPickup = (pickupLocation == null || pickupLocation.trim().isEmpty()
+                        || carLocation.toLowerCase().contains(pickupLocation.toLowerCase()));
+                boolean matchDropoff = (dropoffLocation == null || dropoffLocation.trim().isEmpty()
+                        || carLocation.toLowerCase().contains(dropoffLocation.toLowerCase()));
+
                 if (matchPickup && matchDropoff) {
                     filteredCars.add(car);
                 }
             }
         }
-        
+
         return filteredCars;
     }
-    
+
     /**
      * Parse date string from various formats
+     *
      * @param dateStr Date string (yyyy-MM-dd or dd/MM/yyyy)
      * @return SQL Date
      */
@@ -643,19 +660,36 @@ public class CarDAO extends DBContext {
             if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
                 return java.sql.Date.valueOf(dateStr);
             }
-            
+
             // Try dd/MM/yyyy format
             if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
                 String[] parts = dateStr.split("/");
                 String isoDate = parts[2] + "-" + parts[1] + "-" + parts[0];
                 return java.sql.Date.valueOf(isoDate);
             }
-            
+
             // Default: try direct conversion
             return java.sql.Date.valueOf(dateStr);
         } catch (Exception e) {
             System.out.println("Error parsing date: " + dateStr + " - " + e.getMessage());
             return null;
         }
+    }
+    // admin duyet xe
+
+    public List<Car> getPendingCars() {
+        List<Car> cars = new ArrayList<>();
+        String sql = "SELECT * FROM Cars WHERE IsVerified = 0 ORDER BY CreatedAt DESC";
+        try {
+            PreparedStatement stm = connection.prepareStatement(sql);
+            ResultSet rs = stm.executeQuery();
+            while (rs.next()) {
+
+                cars.add(extractCarFromResultSet(rs)); //map data
+            }
+        } catch (SQLException e) {
+            System.out.println("Lỗi getPendingCars: " + e.getMessage());
+        }
+        return cars;
     }
 }
