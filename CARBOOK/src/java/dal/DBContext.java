@@ -13,7 +13,7 @@ public class DBContext {
     public DBContext() {
         try {
             // Database config
-            String url = "jdbc:sqlserver://localhost:1433;databaseName=CRMS_DB1;encrypt=false;trustServerCertificate=true";
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=CRMS_DB;encrypt=false;trustServerCertificate=true";
             String user = "sa";
             String pass = "12345678";
 
