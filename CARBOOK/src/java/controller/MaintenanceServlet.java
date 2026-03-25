@@ -247,6 +247,12 @@ public class MaintenanceServlet extends HttpServlet {
             
             // Check permission
             Car car = carDAO.getCarById(carId);
+            if (car == null) {
+                request.setAttribute("error", "Không tìm thấy xe");
+                response.sendRedirect("maintenance");
+                return;
+            }
+
             if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
                 request.setAttribute("error", "Bạn không có quyền thêm lịch bảo trì cho xe này");
                 response.sendRedirect("maintenance");
@@ -264,20 +270,32 @@ public class MaintenanceServlet extends HttpServlet {
             if (nextServiceDateStr != null && !nextServiceDateStr.isEmpty()) {
                 nextServiceDate = Date.valueOf(nextServiceDateStr);
             }
+
+            if (serviceDate == null) {
+                request.setAttribute("error", "Vui lòng chọn ngày bảo trì");
+                showCreateForm(request, response, user);
+                return;
+            }
+
+            if (nextServiceDate != null && nextServiceDate.before(serviceDate)) {
+                request.setAttribute("error", "Ngày bảo trì tiếp theo phải sau hoặc bằng ngày bảo trì");
+                showCreateForm(request, response, user);
+                return;
+            }
             
-            // Check if there are existing bookings in the maintenance period
-            if (serviceDate != null) {
+            // Only active maintenance should be validated against booking/availability overlap
+            if ("Scheduled".equals(status) || "In Progress".equals(status)) {
                 Date endDate = nextServiceDate != null ? nextServiceDate : serviceDate;
                 
                 if (bookingDAO.hasActiveBookingInPeriod(carId, serviceDate, endDate)) {
-                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 t\u1ea1o l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 booking trong kho\u1ea3ng th\u1eddi gian n\u00e0y. Vui l\u00f2ng h\u1ee7y booking tr\u01b0\u1edbc.");
+                    request.setAttribute("error", "Không thể tạo lịch bảo trì vì xe đã có booking trong khoảng thời gian này. Vui lòng hủy booking trước.");
                     showCreateForm(request, response, user);
                     return;
                 }
                 
                 // Check if car is already blocked in CarAvailability
                 if (!availabilityDAO.isCarAvailableForDateRange(carId, serviceDate, endDate)) {
-                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 t\u1ea1o l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 l\u1ecbch kh\u00f4ng kh\u1ea3 d\u1ee5ng trong kho\u1ea3ng th\u1eddi gian n\u00e0y.");
+                    request.setAttribute("error", "Không thể tạo lịch bảo trì vì xe đã có lịch không khả dụng trong khoảng thời gian này.");
                     showCreateForm(request, response, user);
                     return;
                 }
@@ -344,6 +362,12 @@ public class MaintenanceServlet extends HttpServlet {
             
             // Check permission
             Car car = carDAO.getCarById(carId);
+            if (car == null) {
+                request.setAttribute("error", "Không tìm thấy xe");
+                response.sendRedirect("maintenance");
+                return;
+            }
+
             if (user.getRoleId() != 1 && car.getOwnerId() != user.getUserId()) {
                 request.setAttribute("error", "Bạn không có quyền chỉnh sửa");
                 response.sendRedirect("maintenance");
@@ -361,20 +385,32 @@ public class MaintenanceServlet extends HttpServlet {
             if (nextServiceDateStr != null && !nextServiceDateStr.isEmpty()) {
                 nextServiceDate = Date.valueOf(nextServiceDateStr);
             }
+
+            if (serviceDate == null) {
+                request.setAttribute("error", "Vui lòng chọn ngày bảo trì");
+                showEditForm(request, response, user);
+                return;
+            }
+
+            if (nextServiceDate != null && nextServiceDate.before(serviceDate)) {
+                request.setAttribute("error", "Ngày bảo trì tiếp theo phải sau hoặc bằng ngày bảo trì");
+                showEditForm(request, response, user);
+                return;
+            }
             
-            // Check if there are existing bookings in the maintenance period
-            if (serviceDate != null) {
+            // Only active maintenance should be validated against booking/availability overlap
+            if ("Scheduled".equals(status) || "In Progress".equals(status)) {
                 Date endDate = nextServiceDate != null ? nextServiceDate : serviceDate;
                 
                 if (bookingDAO.hasActiveBookingInPeriod(carId, serviceDate, endDate)) {
-                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 booking trong kho\u1ea3ng th\u1eddi gian n\u00e0y. Vui l\u00f2ng h\u1ee7y booking tr\u01b0\u1edbc.");
+                    request.setAttribute("error", "Không thể cập nhật lịch bảo trì vì xe đã có booking trong khoảng thời gian này. Vui lòng hủy booking trước.");
                     showEditForm(request, response, user);
                     return;
                 }
                 
                 // Check if car is already blocked in CarAvailability
                 if (!availabilityDAO.isCarAvailableForDateRange(carId, serviceDate, endDate)) {
-                    request.setAttribute("error", "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt l\u1ecbch b\u1ea3o tr\u00ec v\u00ec xe \u0111\u00e3 c\u00f3 l\u1ecbch kh\u00f4ng kh\u1ea3 d\u1ee5ng trong kho\u1ea3ng th\u1eddi gian n\u00e0y.");
+                    request.setAttribute("error", "Không thể cập nhật lịch bảo trì vì xe đã có lịch không khả dụng trong khoảng thời gian này.");
                     showEditForm(request, response, user);
                     return;
                 }

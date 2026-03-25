@@ -194,7 +194,6 @@
                                     <label>Trạng thái <span class="text-danger">*</span></label>
                                     <select class="form-control" name="status" required>
                                         <option value="Available" <c:if test="${car.status == 'Available'}">selected</c:if> <c:if test="${empty car}">selected</c:if>>Sẵn sàng</option>
-                                        <option value="Booked" <c:if test="${car.status == 'Booked'}">selected</c:if>>Đã đặt</option>
                                         <option value="Rented" <c:if test="${car.status == 'Rented'}">selected</c:if>>Đã thuê</option>
                                         <option value="Maintenance" <c:if test="${car.status == 'Maintenance'}">selected</c:if>>Bảo trì</option>
                                         <option value="Inactive" <c:if test="${car.status == 'Inactive'}">selected</c:if>>Không hoạt động</option>

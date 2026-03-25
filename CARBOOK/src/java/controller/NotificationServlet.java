@@ -82,7 +82,17 @@ public class NotificationServlet extends HttpServlet {
 
     private void listNotifications(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        List<Notification> notifications = notificationDAO.getNotificationsByUserId(user.getUserId());
+        String filter = request.getParameter("filter");
+        List<Notification> notifications;
+        
+        // Check if filter is "unread"
+        if ("unread".equals(filter)) {
+            notifications = notificationDAO.getUnreadNotifications(user.getUserId());
+        } else {
+            // Default: show all notifications
+            notifications = notificationDAO.getNotificationsByUserId(user.getUserId());
+        }
+        
         int unreadCount = notificationDAO.getUnreadCount(user.getUserId());
         
         request.setAttribute("notifications", notifications);

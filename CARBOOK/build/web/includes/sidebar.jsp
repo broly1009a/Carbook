@@ -154,6 +154,11 @@
                     <i class="fa fa-star"></i> Quản lý đánh giá
                 </a>
             </li>
+               <li>
+                <a href="contact?action=list" class="${pageContext.request.requestURI.contains('contact') ? 'active' : ''}">
+                    <i class="fa fa-star"></i> Quản lý liên hệ
+                </a>
+            </li>
         </c:if>
         
         <!-- Car Owner Menu -->
